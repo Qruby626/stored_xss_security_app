@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block auth_content %}
+<div style="min-height:100vh; background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.10) 0%, transparent 60%), #0d1117; display:flex; align-items:center; justify-content:center;">
+
+  <div style="width: 100%; max-width: 420px; padding: 1rem;">
+
+    <!-- Brand -->
+    <div class="text-center mb-4">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem;">
+        <i class="bi bi-shield-lock text-white"></i>
+      </div>
+      <h1 style="font-size:1.4rem;font-weight:700;color:#E6EDF3;margin-bottom:.25rem;">XSS Security Lab</h1>
+      <p style="font-size:.8rem;color:#8B949E;">Simulasi Penelitian Stored XSS — Lingkungan Akademik</p>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:2rem;">
+      <h2 style="font-size:1.1rem;font-weight:600;color:#E6EDF3;margin-bottom:1.5rem;">Masuk ke Akun</h2>
+
+      <!-- Flash -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} py-2 small border-0 mb-3
+            {% if cat == 'danger' %}bg-danger bg-opacity-10 text-danger{% endif %}
+            {% if cat == 'warning' %}bg-warning bg-opacity-10 text-warning{% endif %}
+            {% if cat == 'success' %}bg-success bg-opacity-10 text-success{% endif %}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="mb-3">
+          <label class="form-label" style="font-size:.82rem;font-weight:600;color:#8B949E;">Username</label>
+          <div class="input-group">
+            <span style="background:#0d1117;border:1px solid #30363d;border-right:none;border-radius:8px 0 0 8px;padding:.55rem .85rem;color:#8b949e;">
+              <i class="bi bi-person"></i>
+            </span>
+            <input type="text" name="username" id="username" required
+              style="background:#0d1117;border:1px solid #30363d;border-left:none;border-radius:0 8px 8px 0;color:#e6edf3;font-size:.9rem;padding:.55rem .85rem;flex:1;outline:none;transition:border-color .2s;"
+              placeholder="Masukkan username"
+              class="focus-border-glow" />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" style="font-size:.82rem;font-weight:600;color:#8b949e;">Password</label>
+          <div class="input-group">
+            <span style="background:#0d1117;border:1px solid #30363d;border-right:none;border-radius:8px 0 0 8px;padding:.55rem .85rem;color:#8b949e;">
+              <i class="bi bi-lock"></i>
+            </span>
+            <input type="password" name="password" id="password" required
+              style="background:#0d1117;border:1px solid #30363d;border-left:none;border-radius:0 8px 8px 0;color:#e6edf3;font-size:.9rem;padding:.55rem .85rem;flex:1;outline:none;transition:border-color .2s;"
+              placeholder="Masukkan password"
+              class="focus-border-glow" />
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login"
+          style="width:100%;background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;color:white;font-weight:600;font-size:.9rem;padding:.65rem;border-radius:8px;cursor:pointer;transition:all .2s;"
+          class="hover-opacity">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Login
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        <span style="font-size:.82rem;color:#8b949e;">Belum punya akun?</span>
+        <a href="{{ url_for('auth.register') }}" style="font-size:.82rem;color:#3b82f6;text-decoration:none;font-weight:600;margin-left:.3rem;">Daftar sekarang</a>
+      </div>
+    </div>
+
+    <!-- Research notice -->
+    <div class="text-center mt-3">
+      <span style="font-size:.72rem;color:#8b949e;">
+        <i class="bi bi-info-circle me-1"></i>
+        Hanya untuk simulasi penelitian akademik di lingkungan localhost
+      </span>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

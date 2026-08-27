@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}Aturan Deteksi{% endblock %}
+{% block page_title %}<i class="bi bi-code-square me-2" style="color:#ef4444;"></i>Aturan Deteksi{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2 class="page-title">Aturan Deteksi</h2>
+      <p class="page-subtitle" id="rules-summary">{{ patterns|length }} regex pattern aktif untuk mendeteksi variasi payload XSS.</p>
+    </div>
+    <div class="page-header-actions">
+      <span class="pill pill-red"><i class="bi bi-regex"></i>Regex Engine</span>
+      <span class="pill pill-blue"><i class="bi bi-toggle-on"></i>Selalu Aktif</span>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-body-standard">
+      <div class="d-flex align-items-start gap-2 text-secondary">
+        <i class="bi bi-info-circle text-danger"></i>
+        <div>
+          Setiap input pengguna dicocokkan menggunakan <code class="text-warning">re.search(pattern, payload, re.IGNORECASE)</code>. Jika cocok, sistem memberi status <span class="badge-terdeteksi ms-1">Terdeteksi</span>.
+          <p class="small mt-1 mb-0">Keterangan: Rules saat ini bersifat read-only dan didefinisikan di konfigurasi backend.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-body-standard">
+      <div class="rules-toolbar">
+        <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+          <div class="flex-grow-1" style="min-width:220px;">
+            <label class="form-label-dark small mb-1 d-block">Cari Rule</label>
+            <input type="text" id="rule-search" class="form-control form-control-sm form-control-dark" placeholder="Cari pattern atau kategori...">
+          </div>
+          <div style="min-width:180px;">
+            <label class="form-label-dark small mb-1 d-block">Filter Kategori</label>
+            <select id="rule-category-filter" class="form-select form-select-sm form-control-dark">
+              <option value="all">Semua Kategori</option>
+              <option value="Tag HTML">Tag HTML</option>
+              <option value="Event Handler">Event Handler</option>
+              <option value="JS API / Object">JS API / Object</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules-grid-wrapper">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3" id="rules-grid">
+      {% for i, pattern in _enumerate(patterns) %}
+
+      {% set category = 'Lainnya' %}
+      {% set badge_class = 'pill pill-blue' %}
+
+      {% if '<' in pattern or 'srcdoc' in pattern or 'data:' in pattern %}
+        {% set category = 'Tag HTML' %}
+        {% set badge_class = 'pill pill-blue' %}
+      {% elif 'on' in pattern and ('=' in pattern or '\\s*' in pattern) and not 'location' in pattern %}
+        {% set category = 'Event Handler' %}
+        {% set badge_class = 'pill pill-yellow' %}
+      {% elif 'javascript' in pattern or 'alert' in pattern or 'cookie' in pattern or 'eval' in pattern or 'fromCharCode' in pattern or 'fetch' in pattern or 'setTimeout' in pattern or 'setInterval' in pattern or 'location' in pattern or 'write' in pattern or 'innerHTML' in pattern or 'Storage' in pattern or 'XMLHttpRequest' in pattern or 'confirm' in pattern or 'prompt' in pattern %}
+        {% set category = 'JS API / Object' %}
+        {% set badge_class = 'pill pill-green' %}
+      {% endif %}
+
+      {% set description %}
+        {% if '<script' in pattern %}Deteksi tag &lt;script&gt;
+        {% elif 'javascript' in pattern %}Deteksi javascript: URI
+        {% elif 'on\\w' in pattern %}Deteksi event handler seperti onerror dan onload
+        {% elif 'alert' in pattern %}Deteksi fungsi alert()
+        {% elif 'cookie' in pattern %}Deteksi akses document.cookie
+        {% elif 'eval' in pattern %}Deteksi fungsi eval()
+        {% elif 'fromCharCode' in pattern %}Deteksi obfuscation String.fromCharCode
+        {% elif '<img' in pattern %}Deteksi tag &lt;img&gt;
+        {% elif '<svg' in pattern %}Deteksi tag &lt;svg&gt;
+        {% elif 'iframe' in pattern %}Deteksi tag &lt;iframe&gt;
+        {% elif 'srcdoc' in pattern %}Deteksi atribut srcdoc
+        {% elif 'data:' in pattern %}Deteksi data URI
+        {% elif 'fetch' in pattern %}Deteksi fungsi fetch()
+        {% elif 'setTimeout' in pattern %}Deteksi setTimeout()
+        {% elif 'setInterval' in pattern %}Deteksi setInterval()
+        {% elif 'onerror' in pattern %}Deteksi event onerror
+        {% elif 'onload' in pattern %}Deteksi event onload
+        {% elif 'onclick' in pattern %}Deteksi event onclick
+        {% elif 'onmouseover' in pattern %}Deteksi event onmouseover
+        {% else %}Pola deteksi XSS generik{% endif %}
+      {% endset %}
+
+      <div class="col rule-col" data-pattern="{{ pattern|e }}" data-category="{{ category }}">
+        <div class="card-standard h-100 rule-card">
+          <div class="card-header-standard">
+            <div class="rule-header-meta">
+              <span class="pill pill-red">{{ i + 1 }}</span>
+              <span class="text-light fw-semibold">Rule {{ i + 1 }}</span>
+            </div>
+            <span class="{{ badge_class }}"><i class="bi bi-tag-fill"></i>{{ category }}</span>
+          </div>
+          <div class="card-body-standard d-flex flex-column gap-3">
+            <div class="rule-code text-warning">{{ pattern|e }}</div>
+            <p class="rule-description mb-0" title="{{ description|e }}">{{ description }}</p>
+            <div class="rule-actions mt-auto pt-2 border-top border-light-subtle">
+              <button type="button" class="btn btn-sm btn-outline-secondary btn-mobile-full copy-rule-btn" data-pattern="{{ pattern|e }}" title="Salin pattern">
+                <i class="bi bi-clipboard"></i> Salin
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-primary btn-mobile-full view-rule-btn" 
+                      data-index="{{ i + 1 }}" 
+                      data-category="{{ category }}" 
+                      data-pattern="{{ pattern|e }}" 
+                      data-description="{{ description|e }}" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#ruleDetailModal"
+                      title="Lihat detail">
+                <i class="bi bi-eye"></i> Detail
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12">
+        <div class="card-standard">
+          <div class="card-body-standard">
+            <div class="empty-state">
+              <i class="bi bi-inbox"></i>
+              <p>Belum ada pattern deteksi yang tersedia.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="rules-empty-filter" class="card-standard d-none">
+      <div class="card-body-standard">
+        <div class="empty-state">
+          <i class="bi bi-search"></i>
+          <p>Tidak ada rule yang cocok dengan filter saat ini.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-standard {% if patterns|length <= 16 %}d-none{% endif %}" id="rules-pagination">
+      <div class="card-body-standard">
+        <nav aria-label="Navigasi Rule">
+          <ul class="pagination pagination-sm pagination-dark flex-wrap justify-content-center gap-1 mb-0" id="pagination-rules">
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="ruleDetailModal" tabindex="-1" aria-labelledby="ruleDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content bg-dark border border-light-subtle">
+      <div class="modal-header border-light-subtle">
+        <h5 class="modal-title" id="ruleDetailModalLabel">
+          <i class="bi bi-code-square me-2 text-warning"></i>Detail Rule <span id="modal-rule-index"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-dark small mb-1">Kategori</label>
+            <div id="modal-rule-category"></div>
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark small mb-1">Deskripsi</label>
+            <p class="text-light mb-0" id="modal-rule-description"></p>
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark small mb-1">Pattern Regex</label>
+            <div class="rule-code text-warning" id="modal-rule-pattern"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-light-subtle">
+        <button type="button" class="btn btn-outline-secondary btn-mobile-full" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary-custom btn-mobile-full copy-rule-btn-modal" id="modal-copy-btn">
+          <i class="bi bi-clipboard me-1"></i> Salin Pattern
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  const allRuleCols = Array.from(document.querySelectorAll('.rule-col'));
+  const rulesGrid = document.getElementById('rules-grid');
+  const rulesSummary = document.getElementById('rules-summary');
+  const rulesEmptyFilter = document.getElementById('rules-empty-filter');
+  const rulesPagination = document.getElementById('rules-pagination');
+  const paginationEl = document.getElementById('pagination-rules');
+  const searchInput = document.getElementById('rule-search');
+  const categorySelect = document.getElementById('rule-category-filter');
+  const ruleDetailModal = document.getElementById('ruleDetailModal');
+  const modalRuleIndex = document.getElementById('modal-rule-index');
+  const modalRuleCategory = document.getElementById('modal-rule-category');
+  const modalRuleDescription = document.getElementById('modal-rule-description');
+  const modalRulePattern = document.getElementById('modal-rule-pattern');
+  const modalCopyBtn = document.getElementById('modal-copy-btn');
+
+  const ITEMS_PER_PAGE = 16;
+  let currentPage = 1;
+  let filteredCols = allRuleCols.slice();
+
+  function updateSummary() {
+    const total = allRuleCols.length;
+    const shown = filteredCols.length;
+    rulesSummary.textContent = `${shown} dari ${total} regex pattern aktif untuk mendeteksi variasi payload XSS.`;
+  }
+
+  function filterRules() {
+    const search = searchInput.value.toLowerCase().trim();
+    const category = categorySelect.value;
+    filteredCols = allRuleCols.filter(col => {
+      const pattern = col.dataset.pattern.toLowerCase();
+      const cat = col.dataset.category;
+      const matchesSearch = !search || pattern.includes(search) || cat.toLowerCase().includes(search);
+      const matchesCategory = category === 'all' || cat === category;
+      return matchesSearch && matchesCategory;
+    });
+    currentPage = 1;
+    render();
+  }
+
+  function renderPagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    paginationEl.innerHTML = '';
+    if (totalPages <= 1) {
+      rulesPagination.classList.add('d-none');
+      return;
+    }
+    rulesPagination.classList.remove('d-none');
+    const prevLi = document.createElement('li');
+    prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+    const prevLink = document.createElement('a');
+    prevLink.className = 'page-link';
+    prevLink.href = '#';
+    prevLink.innerHTML = '<span aria-hidden="true">&laquo;</span>';
+    prevLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (currentPage > 1) {
+        currentPage--;
+        render();
+      }
+    });
+    prevLi.appendChild(prevLink);
+    paginationEl.appendChild(prevLi);
+    for (let i = 1; i <= totalPages; i++) {
+      const pageLi = document.createElement('li');
+      pageLi.className = 'page-item' + (i === currentPage ? ' active' : '');
+      const pageLink = document.createElement('a');
+      pageLink.className = 'page-link';
+      pageLink.href = '#';
+      pageLink.textContent = i;
+      pageLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        currentPage = i;
+        render();
+      });
+      pageLi.appendChild(pageLink);
+      paginationEl.appendChild(pageLi);
+    }
+    const nextLi = document.createElement('li');
+    nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+    const nextLink = document.createElement('a');
+    nextLink.className = 'page-link';
+    nextLink.href = '#';
+    nextLink.innerHTML = '<span aria-hidden="true">&raquo;</span>';
+    nextLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (currentPage < totalPages) {
+        currentPage++;
+        render();
+      }
+    });
+    nextLi.appendChild(nextLink);
+    paginationEl.appendChild(nextLi);
+  }
+
+  function render() {
+    updateSummary();
+    if (filteredCols.length === 0) {
+      rulesGrid.innerHTML = '';
+      rulesEmptyFilter.classList.remove('d-none');
+      rulesPagination.classList.add('d-none');
+      return;
+    }
+    rulesEmptyFilter.classList.add('d-none');
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageCols = filteredCols.slice(start, end);
+    const frag = document.createDocumentFragment();
+    pageCols.forEach(col => frag.appendChild(col.cloneNode(true)));
+    rulesGrid.innerHTML = '';
+    rulesGrid.appendChild(frag);
+    attachGridEventListeners();
+    renderPagination(filteredCols.length);
+  }
+
+  function copyPattern(pattern) {
+    navigator.clipboard.writeText(pattern).then(function() {
+      // Create toast-like feedback
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:1rem;right:1rem;z-index:9999;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);border-radius:0.5rem;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.5rem;color:#22c55e;font-weight:600;';
+      toast.innerHTML = '<i class="bi bi-clipboard-check"></i> Pattern berhasil disalin.';
+      document.body.appendChild(toast);
+      setTimeout(function() { document.body.removeChild(toast); }, 2000);
+    });
+  }
+
+  function attachGridEventListeners() {
+    document.querySelectorAll('.copy-rule-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        copyPattern(this.dataset.pattern);
+      });
+    });
+    document.querySelectorAll('.view-rule-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        modalRuleIndex.textContent = this.dataset.index;
+        const categoryBadge = document.createElement('span');
+        let catClass = 'pill pill-blue';
+        if (this.dataset.category === 'Tag HTML') catClass = 'pill pill-blue';
+        if (this.dataset.category === 'Event Handler') catClass = 'pill pill-yellow';
+        if (this.dataset.category === 'JS API / Object') catClass = 'pill pill-green';
+        categoryBadge.className = catClass;
+        categoryBadge.innerHTML = '<i class="bi bi-tag-fill"></i>' + this.dataset.category;
+        modalRuleCategory.innerHTML = '';
+        modalRuleCategory.appendChild(categoryBadge);
+        modalRuleDescription.textContent = this.dataset.description;
+        modalRulePattern.textContent = this.dataset.pattern;
+        modalCopyBtn.dataset.pattern = this.dataset.pattern;
+      });
+    });
+  }
+
+  if (searchInput) searchInput.addEventListener('input', filterRules);
+  if (categorySelect) categorySelect.addEventListener('change', filterRules);
+  if (modalCopyBtn) {
+    modalCopyBtn.addEventListener('click', function() {
+      copyPattern(this.dataset.pattern);
+    });
+  }
+  attachGridEventListeners();
+  updateSummary();
+  renderPagination(allRuleCols.length);
+})();
+</script>
+{% endblock %}

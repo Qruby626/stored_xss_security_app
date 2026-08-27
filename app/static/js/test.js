@@ -1,0 +1,1 @@
+console.log("SI-08: test.js berhasil dimuat");

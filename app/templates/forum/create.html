@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Buat Postingan{% endblock %}
+{% block page_title %}<i class="bi bi-plus-circle me-2 text-primary"></i>Buat Postingan Baru{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <!-- Info Banner -->
+    <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;">
+      <i class="bi bi-info-circle text-primary" style="font-size:1.1rem;"></i>
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:#3b82f6;">Modul Simulasi Akademik Aktif</div>
+        <div style="font-size:.77rem;color:#8B949E;">Input pada fitur ini digunakan sebagai bagian dari pengujian Stored XSS dan akan dianalisis oleh mekanisme keamanan aplikasi.</div>
+      </div>
+    </div>
+
+    <div class="card-dark">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2"></i>Detail Postingan
+      </div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('forum.create') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-3">
+            <label class="form-label-dark" for="forum-title">Judul Postingan</label>
+            <input type="text" class="form-control-dark form-control payload-input" name="title" id="forum-title"
+              placeholder="Masukkan judul topik diskusi..." required />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label-dark" for="forum-content">Konten Diskusi</label>
+            <textarea class="form-control-dark form-control payload-input" name="content" id="forum-content"
+              rows="8" placeholder="Tulis isi diskusi di sini..." required></textarea>
+            <div style="font-size:.72rem;color:#484f58;margin-top:.4rem;">
+              <i class="bi bi-shield-exclamation me-1 text-warning"></i>
+              Konten disimpan ke database dan akan dianalisis Rule-Based Detection.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_parent" value="1" id="is_parent">
+              <label class="form-check-label" for="is_parent" style="font-size:.82rem;color:#8B949E;">
+                <i class="bi bi-info-circle me-1 text-primary"></i>
+                Forum ini hanya sebagai parent untuk pengujian Komentar (tidak dihitung sebagai Submission Payload)
+              </label>
+            </div>
+            <div style="font-size:.72rem;color:#484f58;margin-top:.4rem;">
+              Centang jika Forum ini hanya dibuat sebagai objek induk untuk pengujian Komentar dan tidak menerima payload pengujian.
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-primary-custom btn" id="btn-submit-forum">
+              <i class="bi bi-send me-2"></i>Kirim Postingan
+            </button>
+            <a href="{{ url_for('forum.index', session_id=viewed_session.id) if viewed_session else url_for('forum.index') }}"
+              style="font-size:.875rem;color:#8b949e;text-decoration:none;display:flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border:1px solid #30363d;border-radius:8px;transition:background .2s;"
+              class="hover-bg-light">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

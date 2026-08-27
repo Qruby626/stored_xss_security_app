@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Edit Komentar{% endblock %}
+{% block page_title %}<i class="bi bi-pencil-square me-2 text-primary"></i>Edit Komentar{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-dark">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2"></i>Edit Komentar
+      </div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('comments.edit', comment_id=comment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-4">
+            <label class="form-label-dark" for="comment-content">Konten Komentar</label>
+            <textarea class="form-control-dark form-control payload-input" name="content" id="comment-content"
+              rows="5" required>{{ comment.content }}</textarea>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-primary-custom btn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+            <a href="{{ url_for('forum.detail', post_id=comment.post_id) }}"
+              style="font-size:.875rem;color:#8B949E;text-decoration:none;display:flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border:1px solid #30363d;border-radius:8px;transition:background .2s;"
+              class="hover-bg-light">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

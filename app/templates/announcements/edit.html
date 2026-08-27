@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Edit Pengumuman{% endblock %}
+{% block page_title %}<i class="bi bi-pencil-square me-2 text-primary"></i>Edit Pengumuman{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-dark">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2"></i>Edit Pengumuman
+      </div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('announcements.edit', ann_id=announcement.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-3">
+            <label class="form-label-dark" for="ann-title">Judul Pengumuman</label>
+            <input type="text" class="form-control-dark form-control payload-input" name="title" id="ann-title"
+              value="{{ announcement.title }}" required />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label-dark" for="ann-content">Isi Pengumuman</label>
+            <textarea class="form-control-dark form-control payload-input" name="content" id="ann-content"
+              rows="6" required>{{ announcement.content }}</textarea>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-primary-custom btn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+            <a href="{{ url_for('announcements.index', session_id=viewed_session.id) if viewed_session else url_for('announcements.index') }}"
+              style="font-size:.875rem;color:#8B949E;text-decoration:none;display:flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border:1px solid #30363d;border-radius:8px;transition:background .2s;"
+              class="hover-bg-light">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

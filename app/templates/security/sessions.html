@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Riwayat Skenario Pengujian{% endblock %}
+{% block page_title %}<i class="bi bi-clock-history me-2" style="color:#3b82f6;"></i>Riwayat Skenario Pengujian{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h2 style="font-size:1.1rem;font-weight:700;color:#E6EDF3;margin-bottom:.25rem;">Riwayat Skenario Pengujian</h2>
+  <p style="font-size:.8rem;color:#8B949E;margin:0;">
+    Semua hasil pengujian tersimpan permanen. Buka kembali skenario pengujian untuk melihat hasil tanpa mengubah data.
+  </p>
+</div>
+
+<div class="card-dark">
+  <div class="table-responsive">
+    <table class="table table-dark-custom table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nama Skenario</th>
+          <th>Status</th>
+          <th>Waktu Mulai</th>
+          <th>Waktu Selesai</th>
+          <th>Jumlah Submission</th>
+          <th>Tingkat Deteksi</th>
+          <th>CSP Indication Rate</th>
+          <th style="width:100px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in history %}
+        {% set s = row.session %}
+        <tr>
+          <td>
+            <div style="font-weight:600;color:#e6edf3;">{{ s.session_name }}</div>
+            {% if s.description %}
+            <div style="font-size:.72rem;color:#8b949e;">{{ s.description }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.status == 'active' %}
+            <span class="badge bg-success">Sedang Berjalan</span>
+            {% else %}
+            <span class="badge bg-secondary">Selesai</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.78rem;color:#8b949e;white-space:nowrap;">
+            {{ s.started_at.strftime('%d/%m/%Y %H:%M:%S') }}
+          </td>
+          <td style="font-size:.78rem;color:#8b949e;white-space:nowrap;">
+            {% if s.ended_at %}{{ s.ended_at.strftime('%d/%m/%Y %H:%M:%S') }}{% else %}—{% endif %}
+          </td>
+          <td style="font-weight:700;color:#e6edf3;">{{ row.payload_count }}</td>
+          <td style="color:#8b5cf6;font-weight:600;">{{ row.detection_rate }}%</td>
+          <td style="color:#14b8a6;font-weight:600;">{{ row.blocking_rate }}%</td>
+          <td>
+            <a href="{{ url_for('security.dashboard', session_id=s.id) }}"
+               class="btn btn-sm"
+               style="background:rgba(59,130,246,.12);border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;font-size:.72rem;">
+              <i class="bi bi-eye me-1"></i>Lihat
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4" style="color:#8b949e;">
+            <i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>
+            Belum ada skenario pengujian.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

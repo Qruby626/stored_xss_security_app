@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block title %}Hasil Pengujian{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-bar-graph me-2" style="color:#8b5cf6;"></i>Hasil Pengujian{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}
+
+{% block content %}
+{% if selected_session %}
+  {% set total_csp_reports = total_csp %}
+  {% set detection_status = 'Terdeteksi' if total_detected > 0 else 'Belum Terdeteksi' %}
+  {% set csp_status = 'Pelanggaran Ditemukan' if total_blocked > 0 else 'Belum Ada Pelanggaran' %}
+{% else %}
+  {% set total_csp_reports = 0 %}
+  {% set detection_status = 'Tidak Ada Skenario' %}
+  {% set csp_status = 'Tidak Ada Skenario' %}
+{% endif %}
+
+<div class="content-wrapper">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2 class="page-title">Hasil Pengujian</h2>
+      <p class="page-subtitle">Ringkasan akhir seluruh hasil eksperimen Stored XSS berdasarkan skenario pengujian.</p>
+    </div>
+  </div>
+
+  {% include 'security/_session_selector.html' %}
+
+  {% if selected_session %}
+  <!-- KPI Utama: Detection Rate & CSP Indication Rate first -->
+  <div class="section-spacing">
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="page-subtitle mb-1">Tingkat Deteksi (Detection Rate)</div>
+                <div class="display-5 fw-bold text-info">{{ detection_rate }}%</div>
+              </div>
+              <div class="stat-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-graph-up"></i>
+              </div>
+            </div>
+            <div class="progress" style="height: 12px;">
+              <div class="progress-bar bg-info" role="progressbar" style="width: {{ detection_rate }}%;" aria-valuenow="{{ detection_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="text-start mt-2">
+              <small class="text-muted">{{ total_detected }}/{{ total_tested }} payload terdeteksi</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <div class="page-subtitle mb-1">CSP Indication Rate</div>
+                <div class="display-5 fw-bold text-success">{{ blocking_rate }}%</div>
+              </div>
+              <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-shield-slash"></i>
+              </div>
+            </div>
+            <div class="progress" style="height: 12px;">
+              <div class="progress-bar bg-success" role="progressbar" style="width: {{ blocking_rate }}%;" aria-valuenow="{{ blocking_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="text-start mt-2">
+              <small class="text-muted">{{ total_blocked }}/{{ total_tested }} submission payload terindikasi diblokir melalui CSP Violation Report</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan KPI Lain -->
+  <div class="section-spacing">
+    <div class="kpi-grid">
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="page-subtitle mb-2">Aktivitas/Objek Tercatat</div>
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-database"></i>
+              </div>
+            </div>
+            <div class="stat-value text-light">{{ total_objects }}</div>
+            <div class="page-subtitle">Total aktivitas/objek yang tercatat</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="page-subtitle mb-2">Submission Payload Diuji</div>
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-send"></i>
+              </div>
+            </div>
+            <div class="stat-value text-light">{{ total_tested }}</div>
+            <div class="page-subtitle">Total submission yang menerima payload</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="page-subtitle mb-2">Submission Payload Terdeteksi</div>
+              <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-bug"></i>
+              </div>
+            </div>
+            <div class="stat-value" style="color: #EF4444;">{{ total_detected }}</div>
+            <div class="page-subtitle">Submission payload yang terdeteksi oleh Rule-Based Detection</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="page-subtitle mb-2">Submission Payload Terindikasi Diblokir CSP</div>
+              <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-shield-check"></i>
+              </div>
+            </div>
+            <div class="stat-value" style="color: #22C55E;">{{ total_blocked }}</div>
+            <div class="page-subtitle">Jumlah submission payload yang terindikasi diblokir berdasarkan CSP Violation Report</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-body-standard">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="page-subtitle mb-2">Submission Payload Menghasilkan CSP Report</div>
+              <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
+            </div>
+            <div class="stat-value" style="color: #F59E0B;">{{ total_csp_reports }}</div>
+            <div class="page-subtitle">Submission payload yang menghasilkan CSP Violation Report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Skenario -->
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-journal-text me-2"></i>Ringkasan Skenario</span>
+      <span class="page-subtitle">{{ selected_session.session_name }}</span>
+    </div>
+    <div class="card-body-standard">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+        <div class="col">
+          <div class="page-subtitle mb-1">Nama Skenario</div>
+          <div class="fw-semibold text-light text-truncate" title="{{ selected_session.session_name }}">{{ selected_session.session_name }}</div>
+        </div>
+        <div class="col">
+          <div class="page-subtitle mb-1">Tanggal Mulai</div>
+          <div class="fw-semibold text-light">{{ selected_session.started_at.strftime('%d/%m/%Y %H:%M') if selected_session.started_at else '—' }}</div>
+        </div>
+        <div class="col">
+          <div class="page-subtitle mb-1">Status Deteksi</div>
+          <div class="fw-semibold text-light">{{ detection_status }}</div>
+        </div>
+        <div class="col">
+          <div class="page-subtitle mb-1">Status Pengujian</div>
+          <div class="fw-semibold text-light">{{ selected_session.status|capitalize }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-standard section-spacing">
+    <div class="card-body-standard">
+      <div class="empty-state">
+        <i class="bi bi-info-circle"></i>
+        <p>Pilih skenario pengujian untuk melihat ringkasan hasil, KPI, dan grafik analisis.</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-table me-2"></i>Hasil Per Skenario</span>
+      <span class="page-subtitle">Perbandingan konfigurasi dan metrik utama antar skenario.</span>
+    </div>
+    <div class="card-body-standard p-0">
+      <div class="table-wrapper">
+        <div class="table-responsive">
+          <table class="table table-dark-custom table-hover mb-0" id="comparisonTable">
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Rule-Based Detection</th>
+                <th>CSP Nonce Dinamis</th>
+                <th>Aktivitas/Objek</th>
+                <th>Submission Payload Diuji</th>
+                <th>Submission Payload Terdeteksi</th>
+                <th>Submission Payload Terindikasi Diblokir CSP</th>
+                <th>Detection Rate</th>
+                <th>CSP Indication Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in sessions_with_stats %}
+                {% set s = item.session %}
+                {% set objects = item.total_objects %}
+                {% set tested = item.total_tested %}
+                {% set detected = item.total_detected %}
+                {% set blocked = item.total_blocked %}
+                {% set rate_detection = item.detection_rate %}
+                {% set rate_blocking = item.blocking_rate %}
+              <tr>
+                <td>
+                  <div class="fw-semibold text-light text-truncate" style="max-width: 200px;" title="{{ s.session_name }}">{{ s.session_name }}</div>
+                  <div class="page-subtitle">{{ s.status|capitalize }}</div>
+                </td>
+                <td>
+                  <span class="badge rounded-pill {% if detected > 0 %}badge-status-on{% else %}badge-status-off{% endif %}">
+                    {% if detected > 0 %}ON{% else %}OFF{% endif %}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge rounded-pill {% if blocked > 0 %}badge-status-on{% else %}badge-status-off{% endif %}">
+                    {% if blocked > 0 %}ON{% else %}OFF{% endif %}
+                  </span>
+                </td>
+                <td class="fw-semibold text-light">{{ objects }}</td>
+                <td class="fw-semibold text-light">{{ tested }}</td>
+                <td class="fw-semibold text-danger">{{ detected }}</td>
+                <td class="fw-semibold text-success">{{ blocked }}</td>
+                <td class="fw-semibold text-info" title="{{ rate_detection }}%">{{ rate_detection }}%</td>
+                <td class="fw-semibold text-success" title="{{ rate_blocking }}%">{{ rate_blocking }}% (CSP Indication Rate)</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Belum ada skenario pengujian tersedia.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-spacing">
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-header-standard">
+            <span><i class="bi bi-bar-chart me-2"></i>Grafik Tingkat Deteksi</span>
+            <span class="page-subtitle">Visualisasi detection rate per skenario.</span>
+          </div>
+          <div class="card-body-standard">
+            <div class="chart-container">
+              <canvas id="detectionRateChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card-standard h-100">
+          <div class="card-header-standard">
+            <span><i class="bi bi-bar-chart-steps me-2"></i>Grafik CSP Indication Rate</span>
+            <span class="page-subtitle">Visualisasi indikasi pemblokiran berdasarkan CSP per skenario.</span>
+          </div>
+          <div class="card-body-standard">
+            <div class="chart-container">
+              <canvas id="blockingRateChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-lightbulb me-2"></i>Kesimpulan Pengujian</span>
+      <span class="page-subtitle">Analisis deskriptif berdasarkan metrik Detection Rate dan CSP Indication Rate.</span>
+    </div>
+    <div class="card-body-standard">
+      <p id="autoConclusion" class="mb-0 text-light"></p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce() }}">
+  const sessionsLabels = {{ sessions_with_stats|map(attribute='session.session_name')|list|tojson }};
+  const sessionsTested = [
+    {% for item in sessions_with_stats %}{{ item.total_tested }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsDetected = [
+    {% for item in sessions_with_stats %}{{ item.total_detected }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsBlocked = [
+    {% for item in sessions_with_stats %}{{ item.total_blocked }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsRuleEnabled = [
+    {% for item in sessions_with_stats %}{{ 'true' if item.total_detected > 0 else 'false' }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsCspNonce = [
+    {% for item in sessions_with_stats %}{{ 'true' if item.total_blocked > 0 else 'false' }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsDetectionRate = [
+    {% for item in sessions_with_stats %}{{ item.detection_rate }}{{ "," if not loop.last }}{% endfor %}
+  ];
+  const sessionsCspIndicationRate = [
+    {% for item in sessions_with_stats %}{{ item.blocking_rate }}{{ "," if not loop.last }}{% endfor %}
+  ];
+
+  function drawBarChart(canvasId, label, data, color) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: sessionsLabels,
+        datasets: [{
+          label: label,
+          data: data,
+          backgroundColor: color,
+          borderColor: color.replace('0.7', '1'),
+          borderWidth: 1,
+          borderRadius: 8,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y + '%'; } } }
+        },
+        scales: {
+          x: { ticks: { color: '#8b949e' }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y: { ticks: { color: '#8b949e', callback: function(value) { return value + '%'; } }, grid: { color: 'rgba(255,255,255,.05)' }, beginAtZero: true, suggestedMax: 100 }
+        }
+      }
+    });
+  }
+
+  drawBarChart('detectionRateChart', 'Detection Rate', sessionsDetectionRate, 'rgba(139,92,246,.75)');
+  drawBarChart('blockingRateChart', 'CSP Indication Rate', sessionsCspIndicationRate, 'rgba(20,184,166,.75)');
+
+  function buildConclusion() {
+    if (!sessionsLabels.length) {
+      return 'Belum ada skenario pengujian untuk dianalisis.';
+    }
+
+    // Analisis berdasarkan skenario dengan Detection Rate dan CSP Indication Rate tertinggi
+    let bestIndex = 0;
+    let bestScore = -1;
+    for (let i = 0; i < sessionsLabels.length; i += 1) {
+      const detection = Number(sessionsDetectionRate[i]) || 0;
+      const cspIndication = Number(sessionsCspIndicationRate[i]) || 0;
+      let score = (detection + cspIndication) / 2;
+      if (score > bestScore) { bestScore = score; bestIndex = i; }
+    }
+
+    const label = sessionsLabels[bestIndex];
+    const dr = sessionsDetectionRate[bestIndex];
+    const cspRate = sessionsCspIndicationRate[bestIndex];
+    const ruleEnabled = sessionsRuleEnabled[bestIndex];
+    const cspEnabled = sessionsCspNonce[bestIndex];
+
+    let conclusion = `Pada skenario pengujian <strong>${label}</strong>, `;
+    if (ruleEnabled && cspEnabled) {
+      conclusion += `dengan Rule-Based Detection dan CSP Nonce Dinamis aktif, `;
+    } else if (ruleEnabled) {
+      conclusion += `dengan Rule-Based Detection aktif, `;
+    } else if (cspEnabled) {
+      conclusion += `dengan CSP Nonce Dinamis aktif, `;
+    } else {
+      conclusion += `tanpa mekanisme keamanan aktif, `;
+    }
+    conclusion += `Rule-Based Detection menghasilkan Detection Rate sebesar <span class="text-info">${dr}%</span> `;
+    conclusion += `dan CSP menghasilkan CSP Indication Rate sebesar <span class="text-success">${cspRate}%</span> `;
+    conclusion += `berdasarkan submission yang terindikasi diblokir melalui CSP Violation Report. `;
+    conclusion += `Hasil tersebut menggambarkan respons mekanisme keamanan pada dataset dan kondisi pengujian yang digunakan.`;
+
+    return conclusion;
+  }
+
+  var conclusionEl = document.getElementById('autoConclusion');
+  if (conclusionEl) {
+    conclusionEl.innerHTML = buildConclusion();
+  }
+</script>
+{% endblock %}

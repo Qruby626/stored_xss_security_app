@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Edit Pesan Chat{% endblock %}
+{% block page_title %}<i class="bi bi-pencil-square me-2 text-primary"></i>Edit Pesan Chat{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-dark">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2"></i>Edit Pesan Chat
+      </div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('chat.edit', message_id=msg.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-4">
+            <label class="form-label-dark" for="chat-message">Isi Pesan</label>
+            <textarea class="form-control-dark form-control payload-input" name="message" id="chat-message"
+              rows="4" required>{{ msg.message }}</textarea>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-primary-custom btn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+            <a href="{{ url_for('chat.index', session_id=viewed_session.id) if viewed_session else url_for('chat.index') }}"
+              style="font-size:.875rem;color:#8B949E;text-decoration:none;display:flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border:1px solid #30363d;border-radius:8px;transition:background .2s;"
+              class="hover-bg-light">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,222 @@
+{# Skenario Pengujian filter dropdown — used on Security Engine pages #}
+<div class="card-standard mb-4">
+  <div class="card-body-standard">
+    <form method="GET" action="{{ request.path }}" class="row g-3 align-items-end" id="sessionFilterForm">
+      {% if status_filter is defined %}
+      <input type="hidden" name="status" value="{{ status_filter }}">
+      {% endif %}
+      {% if feature_filter is defined %}
+      <input type="hidden" name="feature" value="{{ feature_filter }}">
+      {% endif %}
+      {% if search_query is defined %}
+      <input type="hidden" name="search" value="{{ search_query }}">
+      {% endif %}
+      <div class="col-12 col-md-6">
+        <label class="form-label-dark small" for="session_id">
+          <i class="bi bi-collection me-1"></i>Skenario Pengujian
+        </label>
+        <div class="d-flex flex-wrap gap-2 align-items-stretch">
+          <select class="form-select form-select-sm form-control-dark flex-grow-1" id="session_id" name="session_id">
+            <option value="">— Pilih Skenario Pengujian —</option>
+            {% for s in sessions %}
+              {% if 'Legacy' not in s.session_name %}
+              <option value="{{ s.id }}" {% if selected_session_id == s.id %}selected{% endif %}>
+                {% if s.status == 'active' %}🟢 Aktif{% else %}🔴 Selesai{% endif %} — {{ s.session_name }}
+              </option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary-custom btn-mobile-full" id="btn-apply-session">
+            <i class="bi bi-check-lg me-1"></i>Terapkan
+          </button>
+          {% if selected_session_id and selected_session %}
+          <button type="button" id="btn-delete-session"
+                  class="btn btn-sm btn-danger-custom btn-mobile-full"
+                  data-bs-toggle="modal" data-bs-target="#deleteSessionModal"
+                  data-session-id="{{ selected_session_id }}" data-session-name="{{ selected_session.session_name if selected_session else 'skenario terpilih' }}">
+            <i class="bi bi-trash me-1"></i>Hapus
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        {% if sessions|length == 0 %}
+        <p class="small text-muted mb-0">
+          <i class="bi bi-info-circle me-1"></i>Belum ada skenario pengujian. Silakan buat skenario baru untuk memulai pengujian.
+        </p>
+        <p class="small text-muted mt-2 mb-0">
+          Data hasil pengujian hanya disimpan dan dihitung pada skenario pengujian yang aktif.
+        </p>
+        {% elif selected_session_id and selected_session %}
+          {% if selected_session.status == 'active' %}
+          <p class="small text-success mb-0">
+            <i class="bi bi-record-circle me-1"></i><strong>Status:</strong> <strong>🟢 Aktif</strong>
+          </p>
+          <p class="small text-light fw-semibold mb-1">
+            <strong>Skenario:</strong> {{ selected_session.session_name }}
+          </p>
+          <p class="small text-muted mb-0">
+            Seluruh hasil deteksi akan dicatat pada skenario ini. Modul simulasi siap digunakan.
+          </p>
+          {% else %}
+          <p class="small text-muted mb-0">
+            <i class="bi bi-check-circle me-1"></i><strong>Status:</strong> <strong>🔴 Selesai</strong>
+          </p>
+          <p class="small text-light fw-semibold mb-1">
+            <strong>Skenario:</strong> {{ selected_session.session_name }}
+          </p>
+          <p class="small text-muted mb-0">
+            Menampilkan hasil berdasarkan skenario pengujian yang sedang dipilih.
+          </p>
+          <div class="mt-2">
+            <a href="{{ url_for('dashboard.index', session_id=selected_session_id) }}"
+               class="btn btn-sm btn-primary-custom w-100"
+               title="Buka Simulasi Akademik dengan skenario yang dipilih">
+              <i class="bi bi-megaphone me-1"></i>Buka Simulasi Akademik
+            </a>
+          </div>
+          {% endif %}
+        {% elif active_session %}
+        <p class="small text-success mb-0">
+          <i class="bi bi-record-circle me-1"></i><strong>Status:</strong> <strong>🟢 Aktif</strong>
+        </p>
+        <p class="small text-light fw-semibold mb-1">
+          <strong>Skenario:</strong> {{ active_session.session_name }}
+        </p>
+        <p class="small text-muted mb-0">
+          Seluruh hasil deteksi akan dicatat pada skenario ini. Modul simulasi siap digunakan.
+        </p>
+        <div class="mt-2">
+          <a href="{{ url_for('dashboard.index', session_id=active_session.id) }}"
+             class="btn btn-sm btn-primary-custom w-100"
+             title="Buka Simulasi Akademik dengan skenario aktif">
+            <i class="bi bi-megaphone me-1"></i>Buka Simulasi Akademik
+          </a>
+        </div>
+        {% else %}
+        <p class="small text-muted mb-0">
+          <i class="bi bi-exclamation-circle me-1"></i>Tidak ada skenario yang sedang aktif.
+        </p>
+        <p class="small text-muted mt-2 mb-0">
+          Data hasil pengujian hanya disimpan dan dihitung pada skenario pengujian yang aktif.
+        </p>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if selected_session_id and selected_session %}
+    <div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-labelledby="deleteSessionModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="deleteSessionModalLabel">Hapus Skenario Pengujian</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3">Anda akan menghapus skenario pengujian berikut beserta semua data terkait:</p>
+            <p class="fw-semibold" id="deleteSessionNameLabel">{{ selected_session.session_name }}</p>
+            <form method="POST" action="{{ url_for('security.delete_session') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input type="hidden" name="session_id" id="deleteSessionIdInput" value="{{ selected_session_id }}" />
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-danger-custom">Hapus Skenario</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  var form = document.getElementById('sessionFilterForm');
+  var select = document.getElementById('session_id');
+  var applyBtn = document.getElementById('btn-apply-session');
+  var deleteBtn = document.getElementById('btn-delete-session');
+  var deleteSessionIdInput = document.getElementById('deleteSessionIdInput');
+  var deleteSessionNameLabel = document.getElementById('deleteSessionNameLabel');
+  var deleteSessionModal = document.getElementById('deleteSessionModal');
+  var sessionsData = {};
+
+  if (deleteSessionModal && deleteSessionModal.parentNode !== document.body) {
+    document.body.appendChild(deleteSessionModal);
+  }
+
+  if (!form || !select) return;
+
+  // ── Peta session -> nama untuk update tombol hapus secara dinamis ──────────
+  Array.prototype.forEach.call(select.options, function(opt) {
+    if (opt.value) {
+      var label = (opt.textContent || '').trim();
+      sessionsData[opt.value] = label.substring(label.indexOf('—') + 2) || opt.value;
+    }
+  });
+
+  var submitTimer = null;
+  function scheduleSubmit(delay) {
+    if (submitTimer) clearTimeout(submitTimer);
+    submitTimer = setTimeout(function() {
+      if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Memproses...';
+      }
+      form.submit();
+    }, delay || 0);
+  }
+
+  // ── Auto-submit via change pada select (dengan debounce 200ms) ────────────
+  select.addEventListener('change', function() {
+    var val = select.value;
+    if (deleteBtn) {
+      if (val) {
+        deleteBtn.setAttribute('data-session-id', val);
+        deleteBtn.setAttribute('data-session-name', sessionsData[val] || 'skenario terpilih');
+      }
+    }
+    scheduleSubmit(200);
+  });
+
+  // ── Fallback: Enter key dalam select langsung submit ──────────────────────
+  select.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      scheduleSubmit(0);
+    }
+  });
+
+  // ── Cegah double submit via tombol Terapkan ───────────────────────────────
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function() {
+      if (submitTimer) clearTimeout(submitTimer);
+      applyBtn.disabled = true;
+      applyBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Memproses...';
+    });
+  }
+
+  // ── Sinkronisasi modal penghapusan jika tombol Hapus diklik ───────────────
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', function() {
+      var sid = this.dataset.sessionId;
+      var name = this.dataset.sessionName || 'skenario terpilih';
+      if (deleteSessionIdInput) { deleteSessionIdInput.value = sid; }
+      if (deleteSessionNameLabel) { deleteSessionNameLabel.textContent = name; }
+
+      var modalEl = document.getElementById('deleteSessionModal');
+      var modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+      if (modal) {
+        modal.show();
+      }
+    });
+  }
+
+  // ── Saat submit form, disable semua tombol kontrol aksi ───────────────────
+  form.addEventListener('submit', function() {
+    if (applyBtn) { applyBtn.disabled = true; }
+    if (deleteBtn) { deleteBtn.disabled = true; }
+  });
+})();
+</script>

@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Keamanan{% endblock %}
+{% block page_title %}<i class="bi bi-speedometer2 me-2" style="color:#ef4444;"></i>Dashboard Keamanan{% endblock %}
+
+
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" nonce="{{ csp_nonce() }}"></script>
+<style>
+  /* Dashboard Container Max-Width */
+  .content-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  /* Page Header */
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.75rem; /* 28px */
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.875rem;
+    margin-bottom: 0;
+  }
+  
+  .page-header-actions {
+    gap: 0.5rem;
+  }
+  
+  /* Session Selector Card */
+  .card-standard.mb-4 {
+    margin-bottom: 1rem;
+  }
+  
+  .card-standard.mb-4 .card-body-standard {
+    padding: 1rem;
+  }
+  
+  /* Session Banner - New Style */
+  .session-banner {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    min-height: 44px;
+    border-radius: 10px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  
+  .session-banner i {
+    color: #22C55E;
+  }
+  
+  .session-banner strong {
+    color: #22C55E;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+  }
+  
+  /* KPI Grid - Responsive CSS Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(160px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  /* Metrics Headings - Using grid-column span */
+  .metrics-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem; /* 13px */
+    font-weight: 600; /* semi-bold */
+    letter-spacing: 0.25px;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+  }
+
+  .metrics-heading.rule-based {
+    grid-column: 1 / span 4;
+    color: #3B82F6;
+  }
+
+  .metrics-heading.csp {
+    grid-column: 5 / span 3;
+    color: #22C55E;
+  }
+  
+  /* Card Styling with Accent Colors */
+  .metrics-card-blue {
+    border-top: 3px solid #3B82F6;
+  }
+  
+  .metrics-card-green {
+    border-top: 3px solid #22C55E;
+  }
+  
+  /* KPI Card Body - New Style */
+  .kpi-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #262B33;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* KPI-specific styling */
+  .kpi-card-body .mb-3 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .kpi-card-body .stat-title {
+    font-size: 0.75rem; /* 12px */
+    text-transform: uppercase;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .kpi-card-body .stat-value {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 700;
+  }
+  
+  .kpi-card-body .stat-label {
+    font-size: 0.75rem; /* 12px */
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  /* KPI Icon Container */
+  .kpi-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+  
+  .stat-icon.bg-primary {
+    background: rgba(59, 130, 246, 0.1);
+  }
+  
+  .stat-icon.bg-success {
+    background: rgba(34, 197, 94, 0.1);
+  }
+  
+  .stat-icon.text-primary {
+    color: #3B82F6;
+  }
+  
+  .stat-icon.text-success {
+    color: #22C55E;
+  }
+  
+  /* Chart Section - CSS Grid */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+  
+  /* Chart Card Body */
+  .chart-card-body {
+    padding: 1rem;
+    border-radius: 12px;
+    background: #262B33;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  
+  /* Chart Container Height - Responsive */
+  .chart-container {
+    position: relative;
+    height: 320px;
+    flex: 1;
+  }
+  
+  /* Chart Header */
+  .card-header-standard {
+    padding: 1rem;
+    font-size: 1rem; /* 16px */
+    font-weight: 700;
+  }
+  
+  .card-header-standard .page-subtitle {
+    font-size: 0.8125rem; /* 13px */
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  /* Section Spacing */
+  .section-spacing {
+    margin-top: 1.5rem;
+  }
+  
+  /* Utility Panel - Unified Structure */
+  .utility-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+  }
+  
+  .dashboard-control-card {
+    display: flex;
+    flex: 1;
+  }
+  
+  .utility-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+    padding: 18px;
+    border-radius: 12px;
+    background: #262B33;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .utility-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.75rem;
+  }
+  
+  .utility-description {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 1rem;
+  }
+  
+  .utility-footer {
+    margin-top: auto;
+  }
+  
+  /* Utility Card Borders */
+  .utility-card-blue {
+    border-top: 3px solid #3B82F6;
+  }
+  
+  .utility-card-green {
+    border-top: 3px solid #22C55E;
+  }
+  
+  .utility-card-yellow {
+    border-top: 3px solid #FACC15;
+  }
+  
+  /* Button Height */
+  .btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem; /* 13px */
+  }
+  
+  /* Badge Status */
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  /* Responsive adjustments - Improved Breakpoints */
+  
+  /* Desktop >= 1400px */
+  @media (min-width: 1400px) {
+    .kpi-grid {
+      grid-template-columns: repeat(6, minmax(180px, 1fr));
+    }
+    
+    .metrics-heading.rule-based {
+      grid-column: 1 / span 3;
+    }
+    
+    .metrics-heading.csp {
+      grid-column: 4 / span 3;
+    }
+    
+    .chart-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .utility-panel-grid {
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+    }
+  }
+  
+  /* Laptop 1200-1399px */
+  @media (max-width: 1399px) and (min-width: 1200px) {
+    .kpi-grid {
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      grid-template-rows: auto auto 1fr;
+    }
+    
+    .metrics-heading.rule-based {
+      grid-column: 1 / -1;
+    }
+    
+    .metrics-heading.csp {
+      grid-column: 1 / -1;
+    }
+    
+    .chart-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .utility-panel-grid {
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+    }
+  }
+  
+  /* Tablet 768-1199px */
+  @media (max-width: 1199px) and (min-width: 768px) {
+    .kpi-grid {
+      grid-template-columns: repeat(2, minmax(200px, 1fr));
+      grid-template-rows: auto auto auto 1fr;
+    }
+    
+    .metrics-heading.rule-based {
+      grid-column: 1 / -1;
+    }
+    
+    .metrics-heading.csp {
+      grid-column: 1 / -1;
+    }
+    
+    .chart-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .utility-panel-grid {
+      grid-template-columns: repeat(2, minmax(250px, 1fr));
+    }
+    
+    .content-wrapper {
+      padding: 0 20px;
+    }
+  }
+  
+  /* Mobile < 768px */
+  @media (max-width: 767px) {
+    .kpi-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    .metrics-heading {
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .kpi-card-body {
+      min-height: 110px;
+      padding: 0.875rem;
+    }
+    
+    .kpi-card-body .stat-value {
+      font-size: 2rem;
+    }
+    
+    .chart-container {
+      height: 250px;
+    }
+    
+    .session-banner {
+      padding: 0.5rem 0.75rem;
+      min-height: auto;
+    }
+    
+    .utility-card-body {
+      min-height: auto;
+      padding: 0.875rem;
+    }
+    
+    .utility-panel-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .content-wrapper {
+      padding: 0 16px;
+    }
+    
+    .page-title {
+      font-size: 1.5rem;
+    }
+    
+    .kpi-card-body .stat-value {
+      font-size: 1.75rem;
+    }
+  }
+  
+  /* Small Mobile < 576px */
+  @media (max-width: 575px) {
+    .page-title {
+      font-size: 1.5rem;
+    }
+    
+    .kpi-card-body .stat-value {
+      font-size: 1.75rem;
+    }
+    
+    .content-wrapper {
+      padding: 0 12px;
+    }
+    
+    .chart-container {
+      height: 220px;
+    }
+  }
+  
+  /* Extra Small Mobile < 390px */
+  @media (max-width: 389px) {
+    .content-wrapper {
+      padding: 0 8px;
+    }
+    
+    .kpi-card-body {
+      padding: 0.75rem;
+    }
+    
+    .utility-card-body {
+      padding: 0.75rem;
+    }
+    
+    .chart-container {
+      height: 200px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="content-wrapper">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2 class="page-title">Dashboard Keamanan</h2>
+      <p class="page-subtitle">Ringkasan hasil deteksi, pemblokiran, dan evaluasi pengujian Stored XSS berdasarkan skenario pengujian yang dipilih.</p>
+    </div>
+    <div class="page-header-actions">
+      <span class="badge rounded-pill {% if settings.rule_detection_enabled %}badge-status-on{% else %}badge-status-off{% endif %} px-3 py-2">
+        <i class="bi bi-shield-check me-1"></i>Detection {% if settings.rule_detection_enabled %}Aktif{% else %}Nonaktif{% endif %}
+      </span>
+      <span class="badge rounded-pill {% if settings.csp_nonce_enabled %}badge-status-on{% else %}badge-status-off{% endif %} px-3 py-2">
+        <i class="bi bi-key me-1"></i>CSP {% if settings.csp_nonce_enabled %}Aktif{% else %}Nonaktif{% endif %}
+      </span>
+      {% if selected_session %}
+      <span class="badge rounded-pill badge-status-on px-3 py-2" title="Skenario yang saat ini ditampilkan di dashboard">
+        <i class="bi bi-eye me-1"></i>Menampilkan: {{ selected_session.session_name[:16] }}{% if selected_session.session_name|length > 16 %}...{% endif %}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% include 'security/_session_selector.html' %}
+
+  {% if selected_session %}
+  <div class="session-banner">
+    <i class="bi bi-record-circle-fill {% if selected_session.status == 'active' %}text-success{% else %}text-secondary{% endif %}"></i>
+    <strong class="{% if selected_session.status == 'active' %}text-success{% else %}text-secondary{% endif %}">Skenario Pengujian:</strong>
+    <span class="text-light fw-semibold">{{ selected_session.session_name }}</span>
+    <span class="small text-secondary">ID: <code class="text-warning">{{ selected_session.id }}</code></span>
+  </div>
+  {% endif %}
+
+  <div class="section-spacing">
+    <!-- Single Grid for KPI with grid-column span -->
+    <div class="kpi-grid">
+      <!-- Heading Rule-Based Detection (spans first 3 columns) -->
+      <div class="metrics-heading rule-based">
+        <i class="bi bi-shield-check"></i>
+        <span>Rule-Based Detection</span>
+      </div>
+      
+      <!-- Heading Content Security Policy (spans last 3 columns) -->
+      <div class="metrics-heading csp">
+        <i class="bi bi-shield-slash"></i>
+        <span>Content Security Policy (CSP)</span>
+      </div>
+
+      <!-- Card 1: Aktivitas/Objek Tercatat -->
+      <div class="card-standard metrics-card-blue">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-primary text-primary">
+              <i class="bi bi-database"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">AKTIVITAS/OBJEK TERCATAT</div>
+            </div>
+          </div>
+          <div class="stat-value text-primary">{{ total_objects }}</div>
+          <div class="stat-label">Total aktivitas/objek yang tercatat</div>
+        </div>
+      </div>
+
+      <!-- Card 2: Submission Payload Diuji -->
+      <div class="card-standard metrics-card-blue">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-primary text-primary">
+              <i class="bi bi-send"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">SUBMISSION PAYLOAD DIUJI</div>
+            </div>
+          </div>
+          <div class="stat-value text-primary">{{ total_tested }}</div>
+          <div class="stat-label">Total submission yang menerima payload</div>
+        </div>
+      </div>
+
+      <!-- Card 3: Submission Payload Terdeteksi -->
+      <div class="card-standard metrics-card-blue">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-primary text-primary">
+              <i class="bi bi-bug"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">SUBMISSION PAYLOAD TERDETEKSI</div>
+            </div>
+          </div>
+          <div class="stat-value text-primary">{{ total_detected }}</div>
+          <div class="stat-label">Submission payload yang terdeteksi oleh Rule-Based Detection</div>
+        </div>
+      </div>
+
+      <!-- Card 4: Detection Rate -->
+      <div class="card-standard metrics-card-blue">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-primary text-primary">
+              <i class="bi bi-graph-up"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">Detection Rate</div>
+            </div>
+          </div>
+          <div class="stat-value text-primary">{{ detection_rate }}%</div>
+          <div class="stat-label">Submission Payload Terdeteksi dibagi Submission Payload Diuji</div>
+        </div>
+      </div>
+
+      <!-- Card 5: Submission Payload Diblokir CSP -->
+      <div class="card-standard metrics-card-green">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-success text-success">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">SUBMISSION PAYLOAD TERINDIKASI DIBLOKIR CSP</div>
+            </div>
+          </div>
+          <div class="stat-value text-success">{{ total_blocked }}</div>
+          <div class="stat-label">Submission payload terindikasi diblokir CSP berdasarkan CSP Violation Report</div>
+        </div>
+      </div>
+
+      <!-- Card 6: Submission Payload Menghasilkan CSP Report -->
+      <div class="card-standard metrics-card-green">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-success text-success">
+              <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">SUBMISSION PAYLOAD MENGHASILKAN CSP REPORT</div>
+            </div>
+          </div>
+          <div class="stat-value text-success">{{ total_csp }}</div>
+          <div class="stat-label">Submission payload yang menghasilkan CSP Violation Report</div>
+        </div>
+      </div>
+
+      <!-- Card 7: CSP Indication Rate -->
+      <div class="card-standard metrics-card-green">
+        <div class="kpi-card-body">
+          <div class="kpi-icon-wrapper">
+            <div class="stat-icon bg-success text-success">
+              <i class="bi bi-shield-slash"></i>
+            </div>
+            <div class="text-end">
+              <div class="stat-title">CSP Indication Rate</div>
+            </div>
+          </div>
+          <div class="stat-value text-success">{{ blocking_rate }}%</div>
+          <div class="stat-label">Submission Payload Terindikasi Diblokir CSP dibagi Submission Payload Diuji (CSP Indication Rate)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-spacing">
+    <div class="chart-grid">
+      <!-- Bar Chart -->
+      <div class="card-standard">
+        <div class="card-header-standard">
+          <span><i class="bi bi-bar-chart me-2"></i>Distribusi Status per Fitur</span>
+          <span class="page-subtitle">Chart responsif per modul</span>
+        </div>
+        <div class="chart-card-body">
+          <div class="chart-container">
+            {% if total_tested == 0 %}
+            <div class="empty-state">
+              <i class="bi bi-bar-chart"></i>
+              <p>Belum ada data simulasi.<br>Jalankan pengujian untuk melihat grafik.</p>
+            </div>
+            {% else %}
+            <canvas id="barChart"></canvas>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Doughnut Chart -->
+      <div class="card-standard">
+        <div class="card-header-standard">
+          <span><i class="bi bi-pie-chart me-2"></i>Proporsi Deteksi</span>
+          <span class="page-subtitle">Perbandingan payload tidak terdeteksi dan terdeteksi</span>
+        </div>
+        <div class="chart-card-body">
+          <div class="chart-container d-flex align-items-center justify-content-center">
+            {% if total_tested == 0 %}
+            <div class="empty-state">
+              <i class="bi bi-pie-chart"></i>
+              <p>Belum ada data simulasi.<br>Jalankan pengujian untuk melihat grafik.</p>
+            </div>
+            {% else %}
+            <div class="donut-chart" style="max-width: 280px; max-height: 280px;">
+              <canvas id="pieChart"></canvas>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-spacing">
+    <div class="utility-panel-grid">
+      <!-- Card 1: Rule-Based Detection -->
+      <div class="card-standard dashboard-control-card utility-card-blue">
+        <div class="utility-card-body">
+          <div class="utility-header">
+            <i class="bi bi-shield-fill-check text-info me-2"></i>
+            <span>Rule-Based Detection</span>
+          </div>
+          <div class="utility-description">
+            Rule-Based Detection untuk mendeteksi payload Stored XSS.
+          </div>
+          <div class="utility-footer">
+            {% if settings.rule_detection_enabled %}
+            <form method="POST" action="{{ url_for('security.toggle') }}" class="confirm-form w-100"
+                  data-confirm-msg="Nonaktifkan Rule-Based Detection? Payload XSS tidak akan terdeteksi!">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              {% if selected_session_id %}<input type="hidden" name="session_id" value="{{ selected_session_id }}" />{% endif %}
+              <input type="hidden" name="toggle_name" value="rule_detection" />
+              <input type="hidden" name="toggle_value" value="0" />
+              <button type="submit" class="btn btn-sm w-100 btn-danger-custom">
+                <i class="bi bi-power me-1"></i>Nonaktifkan
+              </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('security.toggle') }}" class="w-100">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              {% if selected_session_id %}<input type="hidden" name="session_id" value="{{ selected_session_id }}" />{% endif %}
+              <input type="hidden" name="toggle_name" value="rule_detection" />
+              <input type="hidden" name="toggle_value" value="1" />
+              <button type="submit" class="btn btn-sm btn-outline-secondary w-100 text-success border-success">
+                <i class="bi bi-power me-1"></i>Aktifkan
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: CSP Nonce Engine -->
+      <div class="card-standard dashboard-control-card utility-card-green">
+        <div class="utility-card-body">
+          <div class="utility-header">
+            <i class="bi bi-key-fill text-success me-2"></i>
+            <span>CSP Nonce Dinamis</span>
+          </div>
+          <div class="utility-description">
+            Nonce dinamis untuk membatasi eksekusi script inline.
+          </div>
+          <div class="utility-footer">
+            {% if settings.csp_nonce_enabled %}
+            <form method="POST" action="{{ url_for('security.toggle') }}" class="confirm-form w-100"
+                  data-confirm-msg="Nonaktifkan CSP Nonce Dinamis? Script inline tidak akan dibatasi oleh CSP Nonce.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              {% if selected_session_id %}<input type="hidden" name="session_id" value="{{ selected_session_id }}" />{% endif %}
+              <input type="hidden" name="toggle_name" value="csp_nonce" />
+              <input type="hidden" name="toggle_value" value="0" />
+              <button type="submit" class="btn btn-sm w-100 btn-danger-custom">
+                <i class="bi bi-power me-1"></i>Nonaktifkan
+              </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('security.toggle') }}" class="w-100">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              {% if selected_session_id %}<input type="hidden" name="session_id" value="{{ selected_session_id }}" />{% endif %}
+              <input type="hidden" name="toggle_name" value="csp_nonce" />
+              <input type="hidden" name="toggle_value" value="1" />
+              <button type="submit" class="btn btn-sm btn-outline-secondary w-100 text-success border-success">
+                <i class="bi bi-power me-1"></i>Aktifkan
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Skenario Pengujian -->
+      <div class="card-standard dashboard-control-card utility-card-yellow">
+        <div class="utility-card-body">
+          <div class="utility-header">
+            <i class="bi bi-collection-play text-warning me-2"></i>
+            <span>Skenario Pengujian</span>
+          </div>
+          <div class="utility-description">
+            Status data yang ditampilkan di dashboard di bawah ini.
+          </div>
+          <div class="utility-description">
+            {% if selected_session %}
+            Data ditampilkan dari skenario: <span class="text-light fw-semibold">{{ selected_session.session_name }}</span>
+              {% if selected_session.id != (active_session.id if active_session else None) %}
+              <div class="small text-secondary mt-1">
+                <i class="bi bi-info-circle me-1"></i>Skenario <strong>berbeda</strong> dengan skenario yang sedang menerima input payload.
+              </div>
+              {% endif %}
+            {% else %}
+            Belum ada skenario yang dipilih. Pilih dari dropdown di atas.
+            {% endif %}
+          </div>
+          <div class="utility-footer">
+            {% if active_session %}
+            <form method="POST" action="{{ url_for('security.end_session') }}" class="w-100">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-sm w-100 btn-danger-custom">
+                <i class="bi bi-stop-circle me-1"></i>Akhiri Skenario ({{ active_session.session_name[:14] }}{% if active_session.session_name|length > 14 %}...{% endif %})
+              </button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-sm btn-primary-custom w-100" data-bs-toggle="modal" data-bs-target="#startSessionModal">
+              <i class="bi bi-play-circle me-1"></i>Mulai Skenario Baru
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if stolen_cookies %}
+  <div class="section-spacing">
+    <div class="card-standard">
+      <div class="card-header-standard">
+        <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Cookie Curian</span>
+        <div class="button-group-responsive">
+          <span class="badge bg-danger">{{ stolen_cookies|length }} tangkapan</span>
+          <span class="page-subtitle">Endpoint: <code class="text-warning">/auth/attacker-listener?cookie=...</code></span>
+        </div>
+      </div>
+      <div class="card-body-standard p-0">
+        <div class="table-wrapper">
+          <table class="table table-dark-custom table-hover mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cookie Value</th>
+                <th>IP Address</th>
+                <th>Waktu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cookie in stolen_cookies %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><code class="text-warning">{{ cookie.cookie_value }}</code></td>
+                <td>{{ cookie.ip_address }}</td>
+                <td>{{ cookie.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Start Session Modal -->
+<div class="modal fade" id="startSessionModal" tabindex="-1" aria-labelledby="startSessionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="startSessionModalLabel">Mulai Skenario Pengujian Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{{ url_for('security.start_session') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label for="session_name" class="form-label">Nama Skenario</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" id="session_name" name="session_name" required placeholder="Contoh: Testing Payload Reflected XSS" />
+          </div>
+          <div class="mb-3">
+            <label for="session_description" class="form-label">Deskripsi (opsional)</label>
+            <textarea class="form-control bg-dark text-light border-secondary" id="session_description" name="session_description" rows="3" placeholder="Deskripsi skenario pengujian..."></textarea>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary-custom">Mulai Skenario</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  // Confirm form submission
+  document.querySelectorAll('.confirm-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      const msg = this.getAttribute('data-confirm-msg');
+      if (msg && !confirm(msg)) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  {% if total_tested > 0 %}
+  // Bar Chart
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Announcements', 'Chat', 'Forum', 'Comment'],
+      datasets: [{
+        label: 'Tidak Terdeteksi',
+        data: [
+          {{ feature_summary.get('announcement', {}).get('SAFE', 0) }},
+          {{ feature_summary.get('chat', {}).get('SAFE', 0) }},
+          {{ feature_summary.get('forum', {}).get('SAFE', 0) }},
+          {{ feature_summary.get('comment', {}).get('SAFE', 0) }}
+        ],
+        backgroundColor: 'rgba(34, 197, 94, 0.7)',
+        borderColor: '#22C55E',
+        borderWidth: 1
+      }, {
+        label: 'Terdeteksi',
+        data: [
+          {{ feature_summary.get('announcement', {}).get('DETECTED', 0) }},
+          {{ feature_summary.get('chat', {}).get('DETECTED', 0) }},
+          {{ feature_summary.get('forum', {}).get('DETECTED', 0) }},
+          {{ feature_summary.get('comment', {}).get('DETECTED', 0) }}
+        ],
+        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+        borderColor: '#EF4444',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.5)'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        },
+        x: {
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.5)'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      }
+    }
+  });
+
+  // Doughnut Chart
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Tidak Terdeteksi', 'Terdeteksi'],
+      datasets: [{
+        data: [
+          {{ total_tested - total_detected }},
+          {{ total_detected }}
+        ],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.7)',
+          'rgba(239, 68, 68, 0.7)'
+        ],
+        borderColor: [
+          '#22C55E',
+          '#EF4444'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        }
+      }
+    }
+  });
+  {% endif %}
+});
+</script>
+
+{% endblock %}

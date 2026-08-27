@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}<i class="bi bi-house-door me-2 text-primary"></i>Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- =======================================================
+     SECTION 1: Header
+     ======================================================= -->
+<div class="hero-panel mb-4">
+  <div class="hero-decor"></div>
+  <div class="hero-content">
+    <div class="hero-title">
+      Selamat Datang! 👋
+    </div>
+    <p class="hero-copy">
+      Anda sedang berada pada <strong style="color:#e6edf3;">modul Simulasi Akademik</strong> untuk melakukan pengujian <strong style="color:#e6edf3;">Stored Cross-Site Scripting (Stored XSS)</strong> melalui fitur aplikasi yang telah disediakan.
+    </p>
+  </div>
+</div>
+
+
+<!-- =======================================================
+     SECTION 2: Target Pengujian
+     ======================================================= -->
+<h3 style="font-size:1.05rem;color:#E6EDF3;font-weight:700;margin-bottom:1rem;">Target Pengujian</h3>
+<div class="row g-3 mb-4">
+  <!-- Forum -->
+  <div class="col-md-3 col-sm-6">
+    <div class="card-dark h-100 p-3 d-flex flex-column align-items-center text-center hover-card" 
+         style="border-top:3px solid #3b82f6;">
+      <i class="bi bi-chat-left-text text-primary mb-2" style="font-size:2rem;"></i>
+      <h4 style="font-size:.95rem;color:#E6EDF3;font-weight:600;margin-bottom:.2rem;">Forum Diskusi</h4>
+      <span style="font-size:.8rem;color:#8B949E;margin-bottom:1.5rem;">{{ total_posts }} Postingan</span>
+      <a href="{{ url_for('forum.index', session_id=viewed_session.id) if viewed_session else url_for('forum.index') }}" class="btn btn-sm w-100 mt-auto" style="border-radius:6px;font-size:.82rem;font-weight:600;background:rgba(59,130,246,.15);color:#3b82f6;border:none;">
+        Masuk <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Komentar -->
+  <div class="col-md-3 col-sm-6">
+    <div class="card-dark h-100 p-3 d-flex flex-column align-items-center text-center hover-card" 
+         style="border-top:3px solid #10b981;">
+      <i class="bi bi-chat-text text-success mb-2" style="font-size:2rem;"></i>
+      <h4 style="font-size:.95rem;color:#e6edf3;font-weight:600;margin-bottom:.2rem;">Komentar</h4>
+      <span style="font-size:.8rem;color:#8b949e;margin-bottom:1.5rem;">{{ total_comments }} Komentar</span>
+      <a href="{{ url_for('forum.index', session_id=viewed_session.id) if viewed_session else url_for('forum.index') }}" class="btn btn-sm w-100 mt-auto" style="border-radius:6px;font-size:.82rem;font-weight:600;background:rgba(16,185,129,.15);color:#10b981;border:none;">
+        Masuk <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Pengumuman -->
+  <div class="col-md-3 col-sm-6">
+    <div class="card-dark h-100 p-3 d-flex flex-column align-items-center text-center hover-card" 
+         style="border-top:3px solid #f59e0b;">
+      <i class="bi bi-megaphone text-warning mb-2" style="font-size:2rem;"></i>
+      <h4 style="font-size:.95rem;color:#e6edf3;font-weight:600;margin-bottom:.2rem;">Pengumuman</h4>
+      <span style="font-size:.8rem;color:#8b949e;margin-bottom:1.5rem;">{{ total_ann }} pengumuman</span>
+      <a href="{{ url_for('announcements.index', session_id=viewed_session.id) if viewed_session else url_for('announcements.index') }}" class="btn btn-sm w-100 mt-auto" style="border-radius:6px;font-size:.82rem;font-weight:600;background:rgba(245,158,11,.15);color:#f59e0b;border:none;">
+        Masuk <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div class="col-md-3 col-sm-6">
+    <div class="card-dark h-100 p-3 d-flex flex-column align-items-center text-center hover-card" 
+         style="border-top:3px solid #0ea5e9;">
+      <i class="bi bi-messenger text-info mb-2" style="font-size:2rem;"></i>
+      <h4 style="font-size:.95rem;color:#e6edf3;font-weight:600;margin-bottom:.2rem;">Chat</h4>
+      <span style="font-size:.8rem;color:#8b949e;margin-bottom:1.5rem;">{{ total_chats }} Pesan</span>
+      <a href="{{ url_for('chat.index', session_id=viewed_session.id) if viewed_session else url_for('chat.index') }}" class="btn btn-sm w-100 mt-auto" style="border-radius:6px;font-size:.82rem;font-weight:600;background:rgba(14,165,233,.15);color:#0ea5e9;border:none;">
+        Masuk <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- =======================================================
+       SECTION 3: Riwayat Aktivitas Pengujian
+       ======================================================= -->
+  <div class="col-lg-6 d-flex flex-column gap-4">
+    <div class="card-dark p-4 flex-grow-1">
+      <h3 style="font-size:1.05rem;color:#e6edf3;font-weight:700;margin-bottom:1rem;">
+        <i class="bi bi-activity me-2 text-success"></i>Riwayat Aktivitas Pengujian
+      </h3>
+      {% if recent_activities %}
+        <div class="table-responsive">
+          <table class="table table-dark-custom table-hover mb-0">
+            <thead>
+              <tr>
+                <th style="width:25%;">Tanggal</th>
+                <th style="width:25%;">Fitur</th>
+                <th>Aktivitas</th>
+                <th style="width:15%;text-align:right;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for act in recent_activities %}
+              <tr>
+                <td class="py-3" style="font-size:.78rem;color:#8b949e;vertical-align:middle;">
+                  {{ act.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </td>
+                <td class="py-3" style="font-size:.8rem;color:#c9d1d9;vertical-align:middle;">
+                  <i class="bi {{ act.icon }} me-1"></i>{{ act.feature }}
+                </td>
+                <td class="py-3" style="font-size:.8rem;color:#e6edf3;vertical-align:middle;">
+                  {{ act.action }}
+                </td>
+                <td class="py-3" style="text-align:right;vertical-align:middle;">
+                  <span class="badge" style="font-size:.7rem;color:#4ade80;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.2);">
+                    <i class="bi bi-check-circle me-1"></i>{{ act.status }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4" style="color:#8b949e;font-size:.85rem;">
+          <i class="bi bi-inbox mb-2" style="font-size:1.5rem;display:block;"></i>
+          Belum ada aktivitas.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- =======================================================
+       SECTION 4: Postingan Forum Terbaru
+       ======================================================= -->
+  <div class="col-lg-6">
+    <div class="card-dark p-4 h-100">
+      <h3 style="font-size:1.05rem;color:#e6edf3;font-weight:700;margin-bottom:1.2rem;">
+        <i class="bi bi-chat-square-text me-2 text-primary"></i>Postingan Forum Terbaru
+      </h3>
+      
+      {% if recent_posts %}
+        <div class="d-flex flex-column gap-3">
+          {% for post in recent_posts[:2] %}
+          <div style="background:var(--card-bg);border:1px solid var(--card-border);
+                      border-radius:8px;padding:1rem;transition:all .2s;" 
+               class="hover-border-primary">
+            <h4 style="font-size:.95rem;color:#e6edf3;margin-bottom:.4rem;font-weight:600;">
+              {{ post.title }}
+            </h4>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span style="font-size:.7rem;color:#8b949e;">
+                <i class="bi bi-person me-1"></i>{{ post.author.username }}
+              </span>
+              <span style="font-size:.7rem;color:#8b949e;">
+                <i class="bi bi-clock me-1"></i>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+              </span>
+            </div>
+            <p style="font-size:.78rem;color:#8b949e;margin-bottom:1rem;
+                      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+              {{ post.content | striptags }}
+            </p>
+            <a href="{{ url_for('forum.detail', post_id=post.id, session_id=viewed_session.id) if viewed_session else url_for('forum.detail', post_id=post.id) }}"
+               class="text-decoration-none hover-text-primary"
+               style="font-size:.75rem;color:#8b949e;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
+              <i class="bi bi-chat-dots"></i> {{ post.comments.count() }} Komentar
+            </a>
+          </div>
+          {% endfor %}
+          <a href="{{ url_for('forum.index', session_id=viewed_session.id) if viewed_session else url_for('forum.index') }}" class="btn btn-sm mt-1 w-100" style="background:rgba(255,255,255,.05);color:#c9d1d9;border:1px solid var(--card-border);border-radius:6px;font-size:.8rem;font-weight:600;">
+            Lihat Semua Postingan <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      {% else %}
+        <div class="text-center py-5" style="color:#8b949e;font-size:.85rem;">
+          <i class="bi bi-chat-square-quote mb-2" style="font-size:2rem;display:block;"></i>
+          Belum ada postingan di forum diskusi.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style nonce="{{ csp_nonce() }}">
+  .hover-text-primary {
+    transition: color 0.2s;
+  }
+  .hover-text-primary:hover {
+    color: #3b82f6 !important;
+  }
+  .hover-scale:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59,130,246,0.35) !important;
+  }
+  .hover-card {
+    transition: all 0.2s ease;
+  }
+  .hover-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.03);
+  }
+  .hover-border-primary:hover {
+    border-color: rgba(59,130,246,0.4) !important;
+  }
+</style>
+
+{% endblock %}

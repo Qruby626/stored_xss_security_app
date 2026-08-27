@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Log Deteksi{% endblock %}
+{% block page_title %}<i class="bi bi-list-columns-reverse me-2" style="color:#ef4444;"></i>Log Deteksi{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2 class="page-title">Log Deteksi</h2>
+      <p class="page-subtitle">Menampilkan seluruh aktivitas deteksi Stored XSS berdasarkan skenario pengujian yang dipilih.</p>
+    </div>
+    <div class="page-header-actions">
+      <span class="badge-terdeteksi px-3 py-2"><i class="bi bi-bug me-1"></i>Deteksi Aturan</span>
+    </div>
+  </div>
+
+  {% include 'security/_session_selector.html' %}
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-funnel me-2"></i>Filter Log Deteksi</span>
+      <span class="page-subtitle">Gunakan filter untuk meninjau payload, target, dan status deteksi.</span>
+    </div>
+    <div class="card-body-standard">
+      <form method="GET" action="{{ url_for('security.logs') }}" class="form-row-responsive align-items-end">
+        <div>
+          <label class="form-label-dark small" for="filter-feature">Fitur</label>
+          <select class="form-select form-select-sm form-control-dark" id="filter-feature" name="feature">
+            <option value="">Semua Fitur</option>
+            <option value="forum" {% if feature_filter == 'forum' %}selected{% endif %}>Forum</option>
+            <option value="comment" {% if feature_filter == 'comment' %}selected{% endif %}>Komentar</option>
+            <option value="announcement" {% if feature_filter == 'announcement' %}selected{% endif %}>Pengumuman</option>
+            <option value="chat" {% if feature_filter == 'chat' %}selected{% endif %}>Chat</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label-dark small" for="filter-status">Status</label>
+          <select class="form-select form-select-sm form-control-dark" id="filter-status" name="status">
+            <option value="">Semua Status</option>
+            <option value="DETECTED" {% if status_filter == 'DETECTED' %}selected{% endif %}>Terdeteksi</option>
+            <option value="SAFE" {% if status_filter == 'SAFE' %}selected{% endif %}>Aman</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label-dark small" for="filter-search">Cari Payload</label>
+          <input type="text" class="form-control form-control-sm form-control-dark" id="filter-search" name="search" value="{{ search_query }}" placeholder="Kata kunci payload...">
+        </div>
+        <div>
+          <label class="form-label-dark small d-block">&nbsp;</label>
+          <div class="button-group-responsive">
+            <button type="submit" class="btn btn-sm btn-primary-custom btn-mobile-full">
+              <i class="bi bi-filter me-1"></i>Filter
+            </button>
+            <a href="{{ url_for('security.logs') }}" class="btn btn-sm btn-outline-secondary btn-mobile-full">
+              Reset
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-table me-2"></i>Riwayat Deteksi</span>
+      <span class="page-subtitle">Status, rule cocok, dan payload tetap terbaca di semua ukuran layar.</span>
+    </div>
+    <div class="card-body-standard p-0">
+      <div class="table-wrapper">
+        <div class="table-responsive">
+          <table class="table table-dark-custom table-hover mb-0">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Waktu</th>
+                <th>Skenario Pengujian</th>
+                <th>Target</th>
+                <th>Kategori Payload</th>
+                <th>Status</th>
+                <th>Rule Terdeteksi</th>
+                <th>Payload</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in logs %}
+              <tr>
+                <td class="text-secondary">{{ ((pagination.page - 1) * pagination.per_page) + loop.index }}</td>
+                <td class="text-secondary text-nowrap">{{ log.created_at.strftime('%d/%m %H:%M:%S') }}</td>
+                <td class="text-light text-truncate" style="max-width:200px;" title="{{ log.test_session.session_name if log.test_session else '—' }}">
+                  {{ log.test_session.session_name if log.test_session else '—' }}
+                </td>
+                <td>
+                  <span class="pill {% if log.source_feature == 'forum' %}pill-blue{% elif log.source_feature == 'comment' %}pill-green{% elif log.source_feature == 'announcement' %}pill-yellow{% else %}pill-purple{% endif %}">
+                    {{ log.source_feature|capitalize }}
+                  </span>
+                </td>
+                <td class="text-secondary">{% if log.matched_rule %}{{ log.matched_rule.split()|first }}{% else %}—{% endif %}</td>
+                <td>
+                  {% if log.status == 'DETECTED' %}
+                  <span class="badge-terdeteksi"><i class="bi bi-exclamation-circle me-1"></i>Terdeteksi</span>
+                  {% else %}
+                  <span class="badge-aman"><i class="bi bi-check-circle me-1"></i>Aman</span>
+                  {% endif %}
+                </td>
+                <td class="rule-cell text-truncate" style="max-width:250px;" title="{{ log.matched_rule | e if log.matched_rule else '—' }}">
+                  {% if log.matched_rule %}
+                  <code class="rule-cell">{{ log.matched_rule | e }}</code>
+                  {% else %}
+                  <span class="text-secondary">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex align-items-start gap-2">
+                    <code class="payload-cell text-warning flex-grow-1" title="{{ log.payload | e }}">
+                      {{ (log.payload[:120] | e) }}{% if log.payload|length > 120 %}…{% endif %}
+                    </code>
+                    <button type="button" class="btn-copy-log btn btn-sm btn-outline-secondary flex-shrink-0"
+                            data-payload="{{ log.payload | e }}" title="Salin payload">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Belum ada log deteksi yang sesuai dengan filter saat ini.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div class="card-standard section-spacing">
+    <div class="card-body-standard">
+      <nav aria-label="Page navigation">
+        <ul class="pagination pagination-sm pagination-dark flex-wrap justify-content-center gap-1 mb-0">
+          <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('security.logs', page=pagination.prev_num, feature=feature_filter, status=status_filter, search=search_query, session_id=selected_session_id) }}">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('security.logs', page=page_num, feature=feature_filter, status=status_filter, search=search_query, session_id=selected_session_id) }}">
+                {{ page_num }}
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+          {% endfor %}
+          <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('security.logs', page=pagination.next_num, feature=feature_filter, status=status_filter, search=search_query, session_id=selected_session_id) }}">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Toast Notifikasi Salin -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="copyToast" class="toast copy-toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-body">
+      <i class="bi bi-clipboard-check"></i>
+      <span>Payload berhasil disalin.</span>
+      <button type="button" class="btn-close btn-close-white ms-auto opacity-50" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce() }}">
+  document.addEventListener("DOMContentLoaded", function () {
+    const toastEl = document.getElementById("copyToast");
+    const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+
+    document.querySelectorAll(".btn-copy-log").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const payload = btn.getAttribute("data-payload");
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(payload).then(function () { toast.show(); });
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = payload;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          try { document.execCommand("copy"); } catch(e) {}
+          document.body.removeChild(ta);
+          toast.show();
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

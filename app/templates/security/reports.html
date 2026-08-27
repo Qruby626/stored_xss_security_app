@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% block title %}Laporan CSP{% endblock %}
+{% block page_title %}<i class="bi bi-exclamation-triangle me-2" style="color:#f59e0b;"></i>Laporan CSP{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2 class="page-title">Laporan CSP</h2>
+      <p class="page-subtitle">Menampilkan laporan pelanggaran Content Security Policy (CSP) berdasarkan skenario pengujian yang dipilih.</p>
+      <p class="page-subtitle">
+        Menampilkan {{ reports|length }} submission dari total {{ total_csp_reports if total_csp_reports is defined else reports|length }}
+        submission yang menghasilkan CSP Report.
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <span class="pill pill-yellow"><i class="bi bi-shield-lock"></i>Laporan Otomatis</span>
+    </div>
+  </div>
+
+  {% include 'security/_session_selector.html' %}
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <span><i class="bi bi-funnel me-2"></i>Filter Laporan CSP</span>
+      <span class="page-subtitle">Filter client-side membantu peninjauan URI, directive, status, dan tanggal tanpa mengubah data server.</span>
+    </div>
+    <div class="card-body-standard">
+      {% set directive_options = reports|map(attribute='violated_directive')|select|unique|list %}
+      <form id="reportsClientFilterForm" class="form-row-responsive align-items-end">
+        <div>
+          <label class="form-label-dark small" for="filter-search">Cari URI atau Policy</label>
+          <input id="filter-search" class="form-control form-control-sm form-control-dark" placeholder="Cari document URI, blocked URI, atau original policy..." />
+        </div>
+        <div>
+          <label class="form-label-dark small" for="filter-directive">Directive</label>
+          <select id="filter-directive" class="form-select form-select-sm form-control-dark">
+            <option value="all">Semua Directive</option>
+            {% for directive in directive_options %}
+            <option value="{{ directive }}">{{ directive }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label-dark small" for="filter-blocked">Status Pemblokiran</label>
+          <select id="filter-blocked" class="form-select form-select-sm form-control-dark">
+            <option value="all">Semua Status</option>
+            <option value="blocked">Diblokir</option>
+            <option value="not_blocked">Tidak Diblokir</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label-dark small" for="filter-date">Tanggal</label>
+          <input id="filter-date" type="date" class="form-control form-control-sm form-control-dark" />
+        </div>
+        <div>
+          <label class="form-label-dark small d-block">&nbsp;</label>
+          <div class="button-group-responsive">
+            <button type="submit" class="btn btn-sm btn-primary-custom btn-mobile-full">
+              <i class="bi bi-filter me-1"></i>Terapkan
+            </button>
+            <button type="button" id="resetReportsFilter" class="btn btn-sm btn-outline-secondary btn-mobile-full">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+          </div>
+        </div>
+      </form>
+      <div class="reports-helper mt-3">
+        <i class="bi bi-info-circle text-info"></i>
+        <div>Metadata browser vendor, source file, line number, dan column number tidak tersedia pada model CSP report saat ini, sehingga filter difokuskan pada field yang benar-benar tersimpan.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-body-standard">
+      <div class="reports-helper">
+        <i class="bi bi-info-circle text-warning"></i>
+        <div>
+          Endpoint CSP browser adalah <code class="text-warning">POST /csp-report</code>. Data yang tersedia untuk audit halaman ini adalah
+          <span class="text-light">document URI</span>, <span class="text-light">blocked URI</span>, <span class="text-light">violated directive</span>,
+          <span class="text-light">original policy</span>, waktu CSP Report, dan skenario pengujian terkait.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing">
+    <div class="card-header-standard">
+      <div>
+        <span><i class="bi bi-table me-2"></i>Daftar Laporan CSP</span>
+        <div class="page-subtitle">URI panjang, directive, dan policy dipangkas rapi dengan tooltip, tombol copy, dan modal detail.</div>
+      </div>
+      <div class="reports-toolbar">
+        <span class="page-subtitle" id="reportsVisibleSummary">Menyiapkan ringkasan submission...</span>
+        <div class="reports-loading" id="reportsLoading" hidden>
+          <div class="spinner-border spinner-border-sm text-info" role="status" aria-hidden="true"></div>
+          <span>Menyaring submission...</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body-standard p-0">
+      <div class="table-wrapper">
+        <div class="table-responsive">
+          <table class="table table-dark-custom table-hover mb-0 reports-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Waktu</th>
+                <th>Skenario Pengujian</th>
+                <th>Document URI</th>
+                <th>Blocked URI</th>
+                <th>Directive Dilanggar</th>
+                <th>Original Policy</th>
+                <th>Status Pemblokiran</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in reports %}
+              <tr data-report-row="true"
+                  data-status="{% if r.blocked_uri %}blocked{% else %}not_blocked{% endif %}"
+                  data-directive="{{ (r.violated_directive or '') | lower }}"
+                  data-date="{{ r.created_at.strftime('%Y-%m-%d') }}"
+                  data-search="{{ ((r.document_uri or '') ~ ' ' ~ (r.blocked_uri or '') ~ ' ' ~ (r.original_policy or '') ~ ' ' ~ (r.violated_directive or '') ~ ' ' ~ (r.test_session.session_name if r.test_session else '')) | lower }}">
+                <td class="text-secondary">{{ loop.index }}</td>
+                <td>
+                  <div class="report-date">{{ r.created_at.strftime('%d/%m/%Y') }}</div>
+                  <div class="report-time">{{ r.created_at.strftime('%H:%M:%S') }}</div>
+                </td>
+                <td>
+                  <span class="report-session-name text-light" title="{{ r.test_session.session_name if r.test_session else '—' }}">
+                    {{ r.test_session.session_name if r.test_session else '—' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="report-cell-stack">
+                    <div class="report-inline-actions">
+                      <code class="report-code uri-preview" title="{{ r.document_uri | e }}">{{ (r.document_uri | e) or '—' }}</code>
+                      {% if r.document_uri %}
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-copy-report" data-copy-value="{{ r.document_uri | e }}" title="Salin Document URI">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-view-report-detail" data-detail-title="Document URI" data-detail-value="{{ r.document_uri | e }}" title="Lihat detail Document URI">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                    <div class="report-cell-note">Alamat halaman yang memicu CSP Report pada submission ini.</div>
+                  </div>
+                </td>
+                <td>
+                  <div class="report-cell-stack">
+                    <div class="report-inline-actions">
+                      <code class="report-code uri-preview text-info" title="{{ r.blocked_uri | e }}">{{ (r.blocked_uri | e) or '—' }}</code>
+                      {% if r.blocked_uri %}
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-copy-report" data-copy-value="{{ r.blocked_uri | e }}" title="Salin Blocked URI">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-view-report-detail" data-detail-title="Blocked URI" data-detail-value="{{ r.blocked_uri | e }}" title="Lihat detail Blocked URI">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                    <div class="report-cell-note">{% if r.blocked_uri %}Resource yang dihentikan browser oleh kebijakan CSP.{% else %}Browser tidak menyertakan blocked URI pada CSP Report ini.{% endif %}</div>
+                  </div>
+                </td>
+                <td>
+                  {% if r.violated_directive %}
+                  <span class="directive-pill" title="{{ r.violated_directive | e }}">{{ r.violated_directive | e }}</span>
+                  {% else %}
+                  <span class="text-secondary">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="report-cell-stack">
+                    <div class="report-inline-actions">
+                      <code class="report-code policy-preview text-secondary" title="{{ r.original_policy | e }}">{{ (r.original_policy[:110] | e) if r.original_policy else '—' }}{% if r.original_policy and r.original_policy|length > 110 %}...{% endif %}</code>
+                      {% if r.original_policy %}
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-view-report-detail" data-detail-title="Original Policy" data-detail-value="{{ r.original_policy | e }}" title="Lihat detail Original Policy">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary report-action-btn btn-copy-report" data-copy-value="{{ r.original_policy | e }}" title="Salin Original Policy">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                    <div class="report-cell-note">Policy asli dipangkas untuk menjaga tabel tetap ringkas.</div>
+                  </div>
+                </td>
+                <td>
+                  <div class="report-status-stack">
+                    {% if r.blocked_uri %}
+                    <span class="badge-terdeteksi"><i class="bi bi-shield-x me-1"></i>Terindikasi Diblokir</span>
+                    <span class="report-summary-text">Browser mengirim CSP Violation Report dengan blocked URI sebagai indikasi pelanggaran kebijakan CSP.</span>
+                    {% else %}
+                    <span class="badge-aman"><i class="bi bi-shield-check me-1"></i>Tidak Ada Indikasi Pemblokiran</span>
+                    <span class="report-summary-text">Laporan tersedia, tetapi blocked URI tidak dikirim dalam payload CSP.</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% if loop.last %}
+              <tr id="filtered-empty-row" class="d-none">
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="bi bi-search"></i>
+                    <p>Tidak ada submission yang menghasilkan CSP Report yang cocok dengan filter client-side saat ini.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+              {% else %}
+              <tr id="server-empty-row">
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Belum ada submission yang menghasilkan Content Security Policy (CSP) Report untuk sesi pengujian yang dipilih.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-standard section-spacing report-pagination-card" id="reportsPaginationCard" hidden>
+    <div class="card-body-standard">
+      <span class="page-subtitle" id="reportsPaginationSummary">Menyiapkan pagination...</span>
+      <nav aria-label="Pagination client-side Laporan CSP">
+        <ul class="pagination pagination-sm pagination-dark flex-wrap justify-content-center gap-1 mb-0" id="reportsPagination"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="reportDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="reportDetailModalTitle">Detail Report</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="report-modal-content" id="reportDetailModalContent"></div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="copyToast" class="toast copy-toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-body">
+      <i class="bi bi-clipboard-check"></i>
+      <span>Konten berhasil disalin.</span>
+      <button type="button" class="btn-close btn-close-white ms-auto opacity-50" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce() }}">
+  document.addEventListener('DOMContentLoaded', function () {
+    const filterForm = document.getElementById('reportsClientFilterForm');
+    const statusFilter = document.getElementById('filter-blocked');
+    const directiveFilter = document.getElementById('filter-directive');
+    const searchFilter = document.getElementById('filter-search');
+    const dateFilter = document.getElementById('filter-date');
+    const resetButton = document.getElementById('resetReportsFilter');
+    const tbody = document.querySelector('.reports-table tbody');
+    const rows = Array.from(document.querySelectorAll('tr[data-report-row="true"]'));
+    const filteredEmptyRow = document.getElementById('filtered-empty-row');
+    const paginationCard = document.getElementById('reportsPaginationCard');
+    const paginationList = document.getElementById('reportsPagination');
+    const paginationSummary = document.getElementById('reportsPaginationSummary');
+    const visibleSummary = document.getElementById('reportsVisibleSummary');
+    const loading = document.getElementById('reportsLoading');
+    const copyToastEl = document.getElementById('copyToast');
+    const copyToast = copyToastEl ? new bootstrap.Toast(copyToastEl, { delay: 2200 }) : null;
+    const detailModalEl = document.getElementById('reportDetailModal');
+    const detailModal = detailModalEl ? new bootstrap.Modal(detailModalEl) : null;
+    const detailTitle = document.getElementById('reportDetailModalTitle');
+    const detailContent = document.getElementById('reportDetailModalContent');
+    let currentPage = 1;
+
+    function getPageSize() {
+      return window.innerWidth < 768 ? 6 : 10;
+    }
+
+    function setLoading(isLoading) {
+      if (!loading) return;
+      if (isLoading) {
+        loading.removeAttribute('hidden');
+      } else {
+        loading.setAttribute('hidden', 'hidden');
+      }
+    }
+
+    function copyText(value) {
+      if (!value) return;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(value).then(function () {
+          if (copyToast) copyToast.show();
+        });
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      if (copyToast) copyToast.show();
+    }
+
+    function matchesFilters(row) {
+      const status = statusFilter ? statusFilter.value : 'all';
+      const directive = directiveFilter ? directiveFilter.value.toLowerCase() : 'all';
+      const query = searchFilter ? (searchFilter.value || '').trim().toLowerCase() : '';
+      const date = dateFilter ? dateFilter.value : '';
+      const rowStatus = row.getAttribute('data-status') || '';
+      const rowDirective = row.getAttribute('data-directive') || '';
+      const rowDate = row.getAttribute('data-date') || '';
+      const haystack = row.getAttribute('data-search') || '';
+
+      if (status !== 'all' && rowStatus !== status) return false;
+      if (directive !== 'all' && rowDirective !== directive) return false;
+      if (date && rowDate !== date) return false;
+      if (query && !haystack.includes(query)) return false;
+      return true;
+    }
+
+    function renderPagination(totalItems, totalPages) {
+      if (!paginationList || !paginationCard || !paginationSummary) return;
+      paginationList.innerHTML = '';
+
+      if (totalItems === 0 || totalPages <= 1) {
+        paginationCard.hidden = true;
+        return;
+      }
+
+      paginationCard.hidden = false;
+      paginationSummary.textContent = 'Halaman ' + currentPage + ' dari ' + totalPages + ' untuk ' + totalItems + ' submission.';
+
+      function addPageItem(label, page, disabled, active, ariaLabel) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+        const el = document.createElement(disabled ? 'span' : 'button');
+        el.className = 'page-link';
+        el.innerHTML = label;
+        if (ariaLabel) el.setAttribute('aria-label', ariaLabel);
+        if (!disabled) {
+          el.type = 'button';
+          el.addEventListener('click', function () {
+            currentPage = page;
+            refreshTable(false);
+          });
+        }
+        li.appendChild(el);
+        paginationList.appendChild(li);
+      }
+
+      addPageItem('&laquo;', currentPage - 1, currentPage === 1, false, 'Halaman sebelumnya');
+      for (let page = 1; page <= totalPages; page++) {
+        addPageItem(String(page), page, false, page === currentPage, 'Halaman ' + page);
+      }
+      addPageItem('&raquo;', currentPage + 1, currentPage === totalPages, false, 'Halaman berikutnya');
+    }
+
+    function refreshTable(resetPage) {
+      if (!tbody || rows.length === 0) {
+        if (visibleSummary) {
+          visibleSummary.textContent = 'Belum ada submission yang menghasilkan CSP Report untuk ditampilkan.';
+        }
+        if (paginationCard) paginationCard.hidden = true;
+        return;
+      }
+
+      if (resetPage) currentPage = 1;
+      setLoading(true);
+
+      window.requestAnimationFrame(function () {
+        const filteredRows = rows.filter(matchesFilters);
+        const pageSize = getPageSize();
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const visibleRows = filteredRows.slice(start, end);
+
+        rows.forEach(function (row) {
+          row.style.display = 'none';
+        });
+
+        visibleRows.forEach(function (row) {
+          row.style.display = '';
+        });
+
+        if (filteredEmptyRow) {
+          filteredEmptyRow.classList.toggle('d-none', filteredRows.length !== 0);
+        }
+
+        if (visibleSummary) {
+          visibleSummary.textContent = 'Menampilkan ' + visibleRows.length + ' dari ' + filteredRows.length + ' submission pada halaman ' + currentPage + '.';
+        }
+
+        renderPagination(filteredRows.length, totalPages);
+        setLoading(false);
+      });
+    }
+
+    if (filterForm) {
+      filterForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        refreshTable(true);
+      });
+    }
+
+    [statusFilter, directiveFilter, dateFilter].forEach(function (input) {
+      if (!input) return;
+      input.addEventListener('change', function () {
+        refreshTable(true);
+      });
+    });
+
+    if (searchFilter) {
+      searchFilter.addEventListener('input', function () {
+        refreshTable(true);
+      });
+    }
+
+    if (resetButton) {
+      resetButton.addEventListener('click', function () {
+        if (statusFilter) statusFilter.value = 'all';
+        if (directiveFilter) directiveFilter.value = 'all';
+        if (searchFilter) searchFilter.value = '';
+        if (dateFilter) dateFilter.value = '';
+        refreshTable(true);
+      });
+    }
+
+    document.querySelectorAll('.btn-copy-report').forEach(function (button) {
+      button.addEventListener('click', function () {
+        copyText(button.getAttribute('data-copy-value') || '');
+      });
+    });
+
+    document.querySelectorAll('.btn-view-report-detail').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (!detailModal || !detailTitle || !detailContent) return;
+        detailTitle.textContent = button.getAttribute('data-detail-title') || 'Detail Report';
+        detailContent.textContent = button.getAttribute('data-detail-value') || '—';
+        detailModal.show();
+      });
+    });
+
+    window.addEventListener("resize", function () {
+      refreshTable(false);
+    });
+
+    refreshTable(true);
+  });
+</script>
+{% endblock %}

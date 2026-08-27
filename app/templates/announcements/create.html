@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Buat Pengumuman{% endblock %}
+{% block page_title %}<i class="bi bi-plus-circle me-2 text-warning"></i>Buat Pengumuman Baru{% endblock %}
+
+{% block extra_head %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10" style="max-width: 900px;">
+
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;">
+      <i class="bi bi-megaphone-fill" style="color:#f59e0b;font-size:1.1rem;"></i>
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:#f59e0b;">Formulir Pengujian Pengumuman</div>
+        <div style="font-size:.77rem;color:#8B949E;">Konten pengumuman digunakan sebagai input pengujian Stored XSS dan akan dianalisis oleh mekanisme keamanan aplikasi.</div>
+      </div>
+    </div>
+
+    <div class="card-dark">
+      <div class="card-header"><i class="bi bi-pencil me-2"></i>Detail Pengumuman</div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('announcements.create') }}" id="form-announcement">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-3">
+            <label class="form-label-dark d-flex justify-content-between align-items-center" for="ann-title">
+              <span>Judul Pengumuman <span class="text-danger">*</span></span>
+              <span id="title-counter" style="font-size:0.75rem; color:#8B949E; font-weight:normal;">0/150</span>
+            </label>
+            <input type="text" class="form-control-dark form-control payload-input" name="title" id="ann-title"
+              placeholder="Contoh: Jadwal UAS Semester Genap 2024" maxlength="150" required />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label-dark" for="ann-content">Isi Pengumuman <span class="text-danger">*</span></label>
+            <textarea class="form-control-dark form-control payload-input" name="content" id="ann-content" rows="12"
+              placeholder="Tulis isi pengumuman di sini..." required></textarea>
+            <div style="font-size:.72rem;color:#484f58;margin-top:.4rem;">
+              <i class="bi bi-shield-exclamation me-1 text-warning"></i>
+              Konten disimpan ke database dan akan dianalisis Rule-Based Detection.
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-primary-custom fw-semibold d-inline-flex align-items-center justify-content-center" id="btn-submit-ann" style="border-radius:8px;font-size:.875rem;padding:0.55rem 1.25rem;height:42px;">
+              <i class="bi bi-broadcast me-2"></i>Publikasikan
+            </button>
+            <a href="{{ url_for('announcements.index', session_id=viewed_session.id) if viewed_session else url_for('announcements.index') }}"
+              style="font-size:.875rem;color:#8b949e;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:0.55rem 1.25rem;height:42px;border:1px solid #30363d;border-radius:8px;transition:background .2s;"
+              class="hover-bg-light">
+              <i class="bi bi-x-lg"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce() }}">
+  document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('ann-title');
+    const titleCounter = document.getElementById('title-counter');
+    titleInput.addEventListener('input', function() {
+      titleCounter.textContent = `${this.value.length}/150`;
+    });
+  });
+</script>
+{% endblock %}

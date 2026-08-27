@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Forum Diskusi{% endblock %}
+{% block page_title %}<i class="bi bi-chat-square-text me-2 text-primary"></i>Forum Diskusi{% endblock %}
+
+{% block content %}
+
+<style nonce="{{ csp_nonce() }}">
+  .forum-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #21262d !important;
+  }
+  .forum-card:hover,
+  .forum-card:focus,
+  .forum-card:focus-visible {
+    border-color: #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.02) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    outline: none;
+  }
+  .forum-card:focus,
+  .forum-card:focus-visible {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .forum-title-link {
+    transition: color 0.2s ease;
+  }
+  .forum-card:hover .forum-title-link,
+  .forum-card:focus .forum-title-link,
+  .forum-card:focus-visible .forum-title-link {
+    color: #60a5fa !important;
+    text-decoration: underline !important;
+  }
+  .forum-card:hover .detail-indicator,
+  .forum-card:focus .detail-indicator,
+  .forum-card:focus-visible .detail-indicator {
+    color: #60a5fa !important;
+    transform: translateX(3px);
+  }
+  .detail-indicator {
+    transition: all 0.2s ease;
+  }
+</style>
+
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h2 style="font-size:1.15rem;font-weight:700;color:#E6EDF3;margin:0;">Daftar Diskusi</h2>
+    {% if can_modify and not is_security_mode %}
+    <a href="{{ url_for('forum.create') }}" class="btn-primary-custom btn d-flex align-items-center gap-2">
+      <i class="bi bi-plus-lg"></i> Buat Postingan
+    </a>
+    {% elif can_modify and is_security_mode %}
+    <button class="btn btn-secondary d-flex align-items-center gap-2" disabled title="Fitur ini hanya tersedia di modul Simulasi Akademik">
+      <i class="bi bi-lock-fill"></i> Buat Postingan (Admin Read-Only)
+    </button>
+    {% else %}
+    <button class="btn btn-secondary d-flex align-items-center gap-2" disabled title="Pembuatan dinonaktifkan karena sesi pengujian tidak aktif">
+      <i class="bi bi-lock-fill"></i> Buat Postingan (Locked)
+    </button>
+    {% endif %}
+  </div>
+  <p style="font-size:.8rem;color:#8B949E;margin-top:.3rem;">{{ posts|length }} postingan tersedia</p>
+</div>
+
+{% if posts %}
+  <div class="d-flex flex-column gap-3">
+    {% for post in posts %}
+    <div class="card-dark p-0 forum-card" 
+         data-detail-url="{{ url_for('forum.detail', post_id=post.id) }}"
+         tabindex="0"
+         role="link"
+         title="Klik untuk melihat detail postingan"
+         aria-label="Postingan: {{ post.title|striptags }}">
+      <div class="p-4">
+        <div class="d-flex align-items-start justify-content-between gap-3">
+          <div class="flex-grow-1">
+            <!-- Author -->
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div style="width:28px;height:28px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:white;">
+                {{ post.author.username[0]|upper }}
+              </div>
+              <span style="font-size:.8rem;font-weight:600;color:#8B949E;">{{ post.author.username }}</span>
+              <span style="color:#8b949e;font-size:.75rem;">·</span>
+              <span style="font-size:.75rem;color:#8b949e;">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+            </div>
+
+            <!-- Title — rendered as-is for XSS testing -->
+            <h3 style="font-size:1rem;font-weight:600;color:#e6edf3;margin-bottom:.5rem;">
+              <a href="{{ url_for('forum.detail', post_id=post.id, session_id=viewed_session.id) if viewed_session else url_for('forum.detail', post_id=post.id) }}" class="forum-title-link" style="color:#e6edf3;text-decoration:none;">
+                {{ post.title|safe }}
+              </a>
+            </h3>
+
+            <!-- Content preview -->
+            <div class="payload-display" style="font-size:.85rem;color:#8b949e;margin:0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;">
+              {{ post.content|safe }}
+            </div>
+            
+            <div style="margin-top:.75rem;">
+              <span class="detail-indicator" style="font-size:.75rem;color:#8b949e;display:inline-flex;align-items:center;gap:.3rem;font-weight:500;">
+                Selengkapnya <i class="bi bi-arrow-right"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 flex-shrink-0">
+            <div style="display:flex; gap: 4px;">
+              {% if post.user_id == current_user.id %}
+                {% if can_modify %}
+                <a href="{{ url_for('forum.edit', post_id=post.id, session_id=viewed_session.id) if viewed_session else url_for('forum.edit', post_id=post.id) }}" class="btn-primary-custom" style="padding:.35rem 0.5rem; display:flex; align-items:center; justify-content:center; border-radius:6px; text-decoration:none;" title="Edit">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <form method="POST" action="{{ url_for('forum.delete', post_id=post.id, session_id=viewed_session.id) if viewed_session else url_for('forum.delete', post_id=post.id) }}" class="confirm-form m-0" data-confirm-msg="Hapus postingan ini?">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn-danger-custom h-100" style="padding:.35rem 0.5rem; display:flex; align-items:center; justify-content:center;">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-secondary h-100" disabled style="padding:.35rem 0.5rem; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:.8rem; background:rgba(255,255,255,.05); border:1px solid #30363d;" title="Aksi dinonaktifkan karena sesi tidak aktif">
+                  <i class="bi bi-lock-fill" style="color:#8b949e;"></i>
+                </button>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="card-dark text-center py-5">
+    <i class="bi bi-chat-square-dots" style="font-size:2.5rem;color:#30363d;"></i>
+    <p class="mt-3" style="color:#8b949e;font-size:.9rem;">Belum ada postingan pada sesi pengujian ini.</p>
+    {% if can_modify and not is_security_mode %}
+    <a href="{{ url_for('forum.create', session_id=viewed_session.id) if viewed_session else url_for('forum.create') }}" class="btn-primary-custom btn mt-2">Buat Postingan Pertama</a>
+    {% elif can_modify and is_security_mode %}
+    <button class="btn btn-secondary mt-2" disabled title="Fitur ini hanya tersedia di modul Simulasi Akademik">
+      <i class="bi bi-lock-fill me-1"></i> Buat Postingan (Admin Read-Only)
+    </button>
+    {% else %}
+    <button class="btn btn-secondary mt-2" disabled title="Pembuatan dinonaktifkan karena sesi pengujian tidak aktif">
+      <i class="bi bi-lock-fill me-1"></i> Buat Postingan (Locked)
+    </button>
+    {% endif %}
+  </div>
+{% endif %}
+{% if open_flag == '1' %}
+<script nonce="{{ csp_nonce() }}">
+  // If user clicked 'Buat Postingan' from another context, forward them to the create form.
+  window.location.href = "{{ url_for('forum.create', session_id=viewed_session.id) if viewed_session else url_for('forum.create') }}";
+</script>
+{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.forum-card');
+    
+    cards.forEach(card => {
+      // 1. Mouse Click Event
+      card.addEventListener('click', (event) => {
+        // Hanya picu navigasi jika klik bukan pada elemen interaktif lain (a, button, form)
+        if (!event.target.closest('a, button, form')) {
+          const url = card.getAttribute('data-detail-url');
+          if (url) {
+            window.location.href = url;
+          }
+        }
+      });
+      
+      // 2. Keyboard Events (Accessibility)
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          // Mencegah scroll default halaman saat menekan tombol Space ketika fokus di card
+          if (event.key === ' ') {
+            event.preventDefault();
+          }
+          
+          if (!event.target.closest('a, button, form')) {
+            const url = card.getAttribute('data-detail-url');
+            if (url) {
+              window.location.href = url;
+            }
+          }
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
